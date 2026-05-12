@@ -5,17 +5,24 @@ import type { Request, Response } from 'express';
 
 export const connectStrava = (req: Request & { user?: any }, res: Response) => {
   const userId = req.user.userId;
-  const result = stravaService.connectStrava({ userId });
+  const { newConnection, resetData } = req.query;
+  const result = stravaService.connectStrava({
+    userId,
+    newConnection: newConnection ? Boolean(newConnection) : true,
+    resetData: resetData ? Boolean(resetData) : false,
+  });
   return res.redirect(result);
 };
 
 export const stravaCallback = async (req: Request, res: Response) => {
   const { code, state } = req.query;
   const decoded = JSON.parse(Buffer.from(state as string, 'base64').toString());
-  const userId = decoded.userId;
+  const { userId, newConnection, resetData } = decoded;
   const result = await stravaService.stravaCallback({
     code: code as string,
     userId,
+    newConnection,
+    resetData,
   });
   return res.json(serialize(result));
 };
@@ -46,4 +53,15 @@ export const handleWebhook = async (req: any, res: any) => {
   const activityId = await stravaService.processWebhookEvent(event);
 
   return res.json(activityId);
+};
+
+export const disconnectStrava = async (
+  req: Request & { user?: any },
+  res: Response,
+) => {
+  const userId = req.user.id;
+
+  const update = await stravaService.disconnectStrava({ userId });
+
+  return res.json(update);
 };

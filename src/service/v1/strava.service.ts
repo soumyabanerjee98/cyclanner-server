@@ -2,8 +2,18 @@ import { prisma } from '@/lib/prisma.js';
 import axios from 'axios';
 import 'dotenv/config';
 
-export const connectStrava = ({ userId }: { userId: string }) => {
-  const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
+export const connectStrava = ({
+  userId,
+  newConnection = true,
+  resetData = false,
+}: {
+  userId: string;
+  newConnection?: boolean;
+  resetData?: boolean;
+}) => {
+  const state = Buffer.from(
+    JSON.stringify({ userId, newConnection, resetData }),
+  ).toString('base64');
   const url =
     `https://www.strava.com/oauth/authorize` +
     `?client_id=${process.env.STRAVA_CLIENT_ID}` +
@@ -18,11 +28,16 @@ export const connectStrava = ({ userId }: { userId: string }) => {
 export const stravaCallback = async ({
   code,
   userId,
+  newConnection,
+  resetData,
 }: {
   code: string;
   userId: string;
+  newConnection: boolean;
+  resetData: boolean;
 }) => {
-  console.log('Strava Callback: code: ' + code + ' userId: ' + userId);
+  console.log('Strava Callback: ', { code, userId });
+
   const response = await axios.post('https://www.strava.com/oauth/token', {
     client_id: process.env.STRAVA_CLIENT_ID,
     client_secret: process.env.STRAVA_CLIENT_SECRET,
@@ -31,25 +46,66 @@ export const stravaCallback = async ({
   });
 
   const data = response.data;
+  const athleteId = BigInt(data.athlete.id);
 
-  const update = await prisma.stravaToken.upsert({
-    where: { userId },
-    update: {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresAt: data.expires_at,
-      athleteId: data.athlete.id,
-    },
-    create: {
-      userId,
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresAt: data.expires_at,
-      athleteId: data.athlete.id,
+  const existingAthlete = await prisma.stravaToken.findFirst({
+    where: {
+      athleteId,
+      isActive: true,
+      NOT: { userId },
     },
   });
 
-  return { update };
+  if (existingAthlete) {
+    throw new Error('This Strava account is already linked to another user.');
+  }
+
+  if (newConnection) {
+    await prisma.stravaToken.updateMany({
+      where: { userId, isActive: true },
+      data: { isActive: false },
+    });
+
+    if (resetData) {
+      await prisma.activity.deleteMany({
+        where: { userId },
+      });
+    }
+  }
+
+  const existingToken = await prisma.stravaToken.findFirst({
+    where: {
+      userId,
+      athleteId,
+    },
+  });
+
+  let tokenRecord;
+
+  if (existingToken) {
+    tokenRecord = await prisma.stravaToken.update({
+      where: { id: existingToken.id },
+      data: {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt: data.expires_at,
+        isActive: true,
+      },
+    });
+  } else {
+    tokenRecord = await prisma.stravaToken.create({
+      data: {
+        userId,
+        athleteId,
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt: data.expires_at,
+        isActive: true,
+      },
+    });
+  }
+
+  return { update: tokenRecord };
 };
 
 export const processWebhookEvent = async (event: StravaEvent) => {
@@ -69,9 +125,9 @@ export const processWebhookEvent = async (event: StravaEvent) => {
   }
 };
 
-const syncActivity = async (activityId: number, athleteId: number) => {
+export const syncActivity = async (activityId: number, athleteId: number) => {
   let token = await prisma.stravaToken.findFirst({
-    where: { athleteId: BigInt(athleteId) },
+    where: { athleteId: BigInt(athleteId), isActive: true },
   });
 
   if (!token) {
@@ -172,7 +228,7 @@ const syncActivity = async (activityId: number, athleteId: number) => {
   }
 };
 
-const deleteActivity = async (activityId: number) => {
+export const deleteActivity = async (activityId: number) => {
   await prisma.activity.deleteMany({
     where: { id: BigInt(activityId) },
   });
@@ -209,6 +265,20 @@ export const refreshAccessToken = async (token: any) => {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
       expiresAt: data.expires_at,
+    },
+  });
+
+  return updated;
+};
+
+export const disconnectStrava = async ({ userId }: { userId: string }) => {
+  const updated = await prisma.stravaToken.updateMany({
+    where: {
+      userId,
+      isActive: true,
+    },
+    data: {
+      isActive: false,
     },
   });
 

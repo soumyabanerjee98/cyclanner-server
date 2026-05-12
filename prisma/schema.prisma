@@ -37,10 +37,14 @@ model StravaToken {
   accessToken  String
   refreshToken String
   expiresAt    Int
-  athleteId    BigInt
+  athleteId    BigInt   @unique
+  isActive     Boolean  @default(true)
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@unique([userId, isActive])
 }
 
 model Activity {
