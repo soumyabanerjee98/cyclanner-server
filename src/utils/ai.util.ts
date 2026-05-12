@@ -1,6 +1,8 @@
 export const safeParse = (text: string) => {
   try {
-    let parsed = JSON.parse(text);
+    let cleaned = cleanJSON(text);
+
+    let parsed = JSON.parse(cleaned);
 
     while (typeof parsed === 'string') {
       parsed = JSON.parse(parsed);
@@ -24,10 +26,10 @@ export const cleanJSON = (text: string) => {
       .replace(/[“”]/g, '"')
       .replace(/[‘’]/g, "'")
 
-      // ALL dash types (CRITICAL FIX)
+      // ALL dash types
       .replace(/[\u2010-\u2015\u2212]/g, '-')
 
-      // convert ranges safely (IMPORTANT NEW FIX)
+      // convert ranges safely
       .replace(/(\d)\s*-\s*(\d)/g, '$1-$2')
 
       // fix weird spaces
@@ -35,6 +37,10 @@ export const cleanJSON = (text: string) => {
 
       // normalize approx symbol
       .replace(/≈/g, '~')
+
+      // FIX DOUBLE ESCAPING (IMPORTANT)
+      .replace(/\\"/g, '"') // escaped quotes
+      .replace(/\\'/g, "'") // escaped single quotes
 
       .trim()
   );

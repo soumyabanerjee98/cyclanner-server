@@ -2,7 +2,6 @@ import {
   buildAdjustmentPrompt,
   buildCoachingPrompt,
 } from '@/prompts/coach.prompts.js';
-import { safeParse } from '@/utils/ai.util.js';
 import {
   adjustedPlanSchema,
   coachInsightsSchema,
@@ -50,9 +49,8 @@ export const generateCoachInsights = async (
         ],
         0.7,
       );
-      console.log('Raw Coach Insights: ', raw);
 
-      const parsed = safeParse(raw);
+      const parsed = JSON.parse(raw);
 
       const validated = coachInsightsSchema.safeParse(parsed);
       if (validated.success) {
@@ -98,9 +96,8 @@ export const adjustPlanWithAI = async (
         ],
         0.4,
       );
-      console.log('Raw Adjusted Plan: ', raw);
 
-      const parsed = safeParse(raw);
+      const parsed = JSON.parse(raw);
 
       const validated = adjustedPlanSchema.safeParse(parsed);
       if (validated.success) {

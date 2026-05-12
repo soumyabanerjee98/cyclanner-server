@@ -59,19 +59,26 @@ OUTPUT FORMAT (STRICT JSON - NO DEVIATIONS)
 Return ONLY this JSON:
 
 {
-  "summary": "",
-  "risk": "low" | "medium" | "high",
-  "issues": [],
-  "recommendations": [],
-  "adjustments": []
+  "insights": {
+    {
+      "summary": "",
+      "risk": "low" | "medium" | "high",
+      "issues": [],
+      "recommendations": [],
+      "adjustments": []
+    }
+  }
 }
+
   of type
 {
-  summary: string;
-  risk: "low" | "medium" | "high";
-  issues: string[];
-  recommendations: string[];
-  adjustments: string[];
+  insights: {
+    summary: string;
+    risk: 'low' | 'medium' | 'high';
+    issues: string[];
+    recommendations: string[];
+    adjustments: string[];
+  }
 }
 
 Return ONLY raw JSON object.
