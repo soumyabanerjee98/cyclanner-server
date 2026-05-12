@@ -11,7 +11,7 @@ export const connectStrava = (req: Request & { user?: any }, res: Response) => {
     newConnection: newConnection ? Boolean(newConnection) : true,
     resetData: resetData ? Boolean(resetData) : false,
   });
-  return res.redirect(result);
+  return res.json(result);
 };
 
 export const stravaCallback = async (req: Request, res: Response) => {

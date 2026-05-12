@@ -1,4 +1,4 @@
-import { EXCLUDED_PATHS } from '@/config/route.exclusion.js';
+import { EXCLUDED_PATHS } from '@/config/route.config.js';
 import type { Request, Response, NextFunction } from 'express';
 
 export const validateApiKey = (

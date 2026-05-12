@@ -1,4 +1,8 @@
 import { prisma } from '@/lib/prisma.js';
+import {
+  calculateTrainingLoad,
+  classifyIntensity,
+} from '@/utils/strava.util.js';
 import axios from 'axios';
 import 'dotenv/config';
 
@@ -22,7 +26,7 @@ export const connectStrava = ({
     `&scope=activity:read_all` +
     `&state=${state}`;
   console.log('Strava Connection URL: ' + url);
-  return url;
+  return { url };
 };
 
 export const stravaCallback = async ({
@@ -151,6 +155,16 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
 
     const activity = response.data;
 
+    const zone =
+      activity.average_heartrate && activity.max_heartrate
+        ? classifyIntensity(activity.average_heartrate, activity.max_heartrate)
+        : null;
+
+    const trainingLoad =
+      zone && activity.moving_time
+        ? calculateTrainingLoad(activity.moving_time, zone)
+        : null;
+
     await prisma.activity.upsert({
       where: { id: BigInt(activity.id) },
       update: {
@@ -161,6 +175,8 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
         maxHR: activity.max_heartrate ?? null,
         elevationGain: activity.total_elevation_gain ?? null,
         startDate: new Date(activity.start_date),
+        zone,
+        trainingLoad,
       },
       create: {
         id: BigInt(activity.id),
@@ -172,6 +188,8 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
         maxHR: activity.max_heartrate ?? null,
         elevationGain: activity.total_elevation_gain ?? null,
         startDate: new Date(activity.start_date),
+        zone,
+        trainingLoad,
       },
     });
 
@@ -195,6 +213,19 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
 
       const activity = retry.data;
 
+      const zone =
+        activity.average_heartrate && activity.max_heartrate
+          ? classifyIntensity(
+              activity.average_heartrate,
+              activity.max_heartrate,
+            )
+          : null;
+
+      const trainingLoad =
+        zone && activity.moving_time
+          ? calculateTrainingLoad(activity.moving_time, zone)
+          : null;
+
       await prisma.activity.upsert({
         where: { id: BigInt(activity.id) },
         update: {
@@ -205,6 +236,8 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
           maxHR: activity.max_heartrate ?? null,
           elevationGain: activity.total_elevation_gain ?? null,
           startDate: new Date(activity.start_date),
+          zone,
+          trainingLoad,
         },
         create: {
           id: BigInt(activity.id),
@@ -216,6 +249,8 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
           maxHR: activity.max_heartrate ?? null,
           elevationGain: activity.total_elevation_gain ?? null,
           startDate: new Date(activity.start_date),
+          zone,
+          trainingLoad,
         },
       });
 

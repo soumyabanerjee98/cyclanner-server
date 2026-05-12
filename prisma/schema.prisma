@@ -63,6 +63,9 @@ model Activity {
   avgHR                Int?
   maxHR                Int?
 
+  zone                 String?   // z1, z2, z3, z4, z5
+  trainingLoad         Float?    // computed metric
+
   elevationGain        Float?
 
   startDate            DateTime
