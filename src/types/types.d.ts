@@ -129,6 +129,7 @@ type Goal = {
   experienceLevel: 'beginner' | 'intermediate' | 'advanced';
   aiFeedback?: boolean;
   adjustPlanWithAI?: boolean;
+  maxAIRetries?: number;
 };
 
 type CoachInput = {

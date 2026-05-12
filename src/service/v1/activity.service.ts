@@ -86,23 +86,29 @@ export const buildWeeklyPlan = async (userId: string, goal: Goal) => {
   };
 
   if (goal.aiFeedback) {
-    const insights = await generateCoachInsights({
-      currentLoad: stats.totalLoad,
-      targetLoad,
-      plan,
-      fatigue,
-      goal,
-    });
+    const insights = await generateCoachInsights(
+      {
+        currentLoad: stats.totalLoad,
+        targetLoad,
+        plan,
+        fatigue,
+        goal,
+      },
+      goal.maxAIRetries,
+    );
     responseObject.insights = insights;
   }
   if (goal.adjustPlanWithAI) {
-    const adjustments = await adjustPlanWithAI({
-      currentLoad: stats.totalLoad,
-      targetLoad,
-      plan,
-      fatigue,
-      goal,
-    });
+    const adjustments = await adjustPlanWithAI(
+      {
+        currentLoad: stats.totalLoad,
+        targetLoad,
+        plan,
+        fatigue,
+        goal,
+      },
+      goal.maxAIRetries,
+    );
     responseObject.adjustments = adjustments;
   }
 

@@ -7,6 +7,7 @@ export const goalSchema = z.object({
   experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']),
   aiFeedback: z.boolean().optional(),
   adjustPlanWithAI: z.boolean().optional(),
+  maxAIRetries: z.number().optional(),
 });
 
 export const syncActivitiesSchema = z.object({
