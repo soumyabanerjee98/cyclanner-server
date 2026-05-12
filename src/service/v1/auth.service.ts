@@ -19,7 +19,7 @@ export const register = async (data: {
     data: {
       email: data.email,
       password: hashed,
-      name: data.name,
+      name: data.name ?? null,
     },
   });
 
