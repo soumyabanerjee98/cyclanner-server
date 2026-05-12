@@ -57,7 +57,7 @@ export const processWebhookEvent = async (event: StravaEvent) => {
 
   const { aspect_type, object_type, object_id, owner_id } = event;
 
-  if (object_type !== 'activity') return;
+  if (object_type !== 'activity') throw Error('Not an activity!');
 
   switch (aspect_type) {
     case 'create':
