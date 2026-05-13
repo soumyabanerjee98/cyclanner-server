@@ -247,7 +247,9 @@ TRAINING RULES
    - deviation
    - status
 
-5. Do NOT suggest changing the weekly plan.
+5. Make the commentary actionable and specific to the user's data. Don't give generic advice. For example, if the user is overtrained, suggest specific adjustments like "reduce tomorrow's load by 15%" rather than vague statements like "consider reducing load".
+
+6. Do NOT suggest changing the weekly plan.
 
 ========================
 OUTPUT FORMAT (STRICT JSON ONLY)

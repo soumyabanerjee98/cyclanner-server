@@ -1,6 +1,10 @@
 import { prisma } from '@/lib/prisma.js';
 import { generateDailyInsights } from './ai.service.js';
 
+const getDayName = (date: Date) => {
+  return date.toLocaleDateString('en-US', { weekday: 'short' }); // Mon, Tue
+};
+
 export const getDailyInsights = async (userId: string, date: Date) => {
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
@@ -8,6 +12,7 @@ export const getDailyInsights = async (userId: string, date: Date) => {
   const end = new Date(date);
   end.setHours(23, 59, 59, 999);
 
+  // 1. Fetch activities
   const activities = await prisma.activity.findMany({
     where: {
       userId,
@@ -23,31 +28,44 @@ export const getDailyInsights = async (userId: string, date: Date) => {
     0,
   );
 
+  // 2. Fetch goal
   const goal = await prisma.goal.findFirst({
     where: {
       userId,
-      weekStart: { lte: date },
-      weekEnd: { gte: date },
+      weekStart: { lte: start },
+      weekEnd: { gte: start },
     },
-    include: { plan: true },
+    include: {
+      plan: {
+        orderBy: { version: 'desc' },
+      },
+    },
   });
 
-  const dayName = date.toLocaleDateString('en-US', {
-    weekday: 'short',
-  });
+  if (!goal) {
+    throw new Error('No goal found for this date');
+  }
 
-  const plan = goal?.plan.find((p) => p.day === dayName);
+  // 3. Get correct plan for day
+  const dayName = getDayName(start);
+
+  const plan = goal.plan.find((p) => p.day === dayName);
 
   const plannedLoad = plan?.load || 0;
 
+  // 4. Deviation logic
   const deviation = totalActualLoad - plannedLoad;
 
+  const threshold = plannedLoad * 0.2;
+
   const status =
-    deviation > plannedLoad * 0.2
+    deviation > threshold
       ? 'overtrained'
-      : deviation < -plannedLoad * 0.2
+      : deviation < -threshold
         ? 'undertrained'
         : 'on_track';
+
+  // 5. AI insights
   const ai = await generateDailyInsights(
     {
       plannedLoad,
@@ -57,8 +75,9 @@ export const getDailyInsights = async (userId: string, date: Date) => {
     },
     3,
   );
+
   if (ai.type !== 'json') {
-    throw new Error('Failed to generate daily insights from AI.');
+    throw new Error('AI failed to return valid insights');
   }
 
   const insightData = ai.value as {
@@ -67,10 +86,13 @@ export const getDailyInsights = async (userId: string, date: Date) => {
     commentary: string;
   };
 
+  // 6. Upsert insight
   const dailyInsight = await prisma.dailyInsight.upsert({
     where: {
-      userId,
-      date: start,
+      userId_date: {
+        userId,
+        date: start,
+      },
     },
     update: {
       plannedLoad,
@@ -83,7 +105,7 @@ export const getDailyInsights = async (userId: string, date: Date) => {
     },
     create: {
       userId,
-      goalId: goal!.id,
+      goalId: goal.id,
       date: start,
       plannedLoad,
       actualLoad: totalActualLoad,

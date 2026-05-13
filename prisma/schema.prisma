@@ -155,7 +155,7 @@ model DailyInsight {
 
   createdAt DateTime @default(now())
 
-  @@unique([userId, date])
+  @@unique([userId, date], name: "userId_date")
   @@index([goalId])
   @@index([date])
 }

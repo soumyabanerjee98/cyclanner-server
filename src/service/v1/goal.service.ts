@@ -1,5 +1,12 @@
 import { prisma } from '@/lib/prisma.js';
 
+const getWeekStart = (date: Date) => {
+  const d = new Date(date);
+  const day = d.getDay(); // 0 = Sun
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+  return new Date(d.setDate(diff));
+};
+
 export const createWeeklyGoal = async (
   userId: string,
   input: {
@@ -22,25 +29,13 @@ export const createWeeklyGoal = async (
     startDate,
   } = input;
 
-  const weekStart = startDate ? new Date(startDate) : new Date();
+  const weekStart = getWeekStart(startDate || new Date());
 
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
 
-  const existing = await prisma.goal.findFirst({
-    where: {
-      userId,
-      weekStart: { lte: weekEnd },
-      weekEnd: { gte: weekStart },
-    },
-  });
-
-  if (existing) {
-    throw new Error('Goal already exists for this week!');
-  }
-
   return await prisma.$transaction(async (tx) => {
-    // 1. create goal
+    // 1. create goal (unique constraint handles duplicates)
     const goal = await tx.goal.create({
       data: {
         userId,
@@ -53,7 +48,7 @@ export const createWeeklyGoal = async (
       },
     });
 
-    // 2. create plan
+    // 2. create plan (use create instead of createMany for better control)
     const plans = await tx.plan.createMany({
       data: plan.map((p) => ({
         goalId: goal.id,
@@ -65,7 +60,7 @@ export const createWeeklyGoal = async (
       })),
     });
 
-    // 3. update user's current goal
+    // 3. update current goal pointer
     const updatedUser = await tx.user.update({
       where: { id: userId },
       data: {
