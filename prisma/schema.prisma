@@ -26,6 +26,8 @@ model User {
 
   stravaToken StravaToken?
   activities  Activity[]
+  currentGoal Goal?
+  insight     DailyInsight?
 }
 
 model StravaToken {
@@ -75,4 +77,98 @@ model Activity {
 
   @@index([userId])
   @@index([startDate])
+}
+
+model Goal {
+  id            String   @id @default(uuid())
+
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+
+  weekStart     DateTime
+  weekEnd       DateTime
+
+  currentLoad   Float
+  targetLoad    Float
+  adjustedLoad  Float
+  fatigue       Float
+
+  status        String?  // "on_track", "overtrained", "undertrained"
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  plan          Plan[]
+  insights      DailyInsight[]
+  weeklySummary WeeklySummary?
+
+  @@index([userId])
+  @@index([weekStart])
+}
+
+model Plan {
+  id        String   @id @default(uuid())
+
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id])
+
+  day       String   // Mon, Tue...
+  type      String   // rest, easy, hard, long, recovery
+
+  load      Float
+
+  version   Int      @default(1) // IMPORTANT for AI adjustments
+
+  isAdjusted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([goalId])
+}
+
+model DailyInsight {
+  id        String   @id @default(uuid())
+
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id])
+
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+
+  date      DateTime
+
+  plannedLoad   Float
+  actualLoad    Float
+  deviation     Float
+
+  status        String   // overtrained, undertrained, on_track
+
+  fatigueScore  Float?
+  strainScore   Float?
+
+  commentary    String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([goalId])
+  @@index([userId])
+  @@index([date])
+}
+
+model WeeklySummary {
+  id        String   @id @default(uuid())
+
+  goalId    String   @unique
+  goal      Goal     @relation(fields: [goalId], references: [id])
+
+  plannedLoad Float
+  actualLoad  Float
+  balance     Float
+
+  adherenceScore Float
+  trend         String // improving, overreaching, stable
+
+  fatigueRisk   String // low, medium, high
+
+  createdAt     DateTime @default(now())
 }
