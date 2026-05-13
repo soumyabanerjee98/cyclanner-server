@@ -1,6 +1,6 @@
 // src/middleware/validate.ts
 import type { Request, Response, NextFunction } from 'express';
-import type { ZodSchema } from 'zod';
+import type { ZodError, ZodSchema } from 'zod';
 import type { ParsedQs } from 'qs';
 
 type Schema = {
@@ -28,7 +28,7 @@ export const validate =
     } catch (error: any) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: error.message,
+        details: JSON.parse((error as ZodError).message),
       });
     }
   };
