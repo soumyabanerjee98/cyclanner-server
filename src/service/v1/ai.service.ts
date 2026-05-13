@@ -54,7 +54,7 @@ export const generateCoachInsights = async (
 
       const validated = coachInsightsSchema.safeParse(parsed);
       if (validated.success) {
-        console.log('AI Generate Coach Insights successful.');
+        console.log('AI Generate Coach Insights successful: ', validated.data);
         return { type: 'json', value: validated.data };
       }
       console.warn(
@@ -101,7 +101,7 @@ export const adjustPlanWithAI = async (
 
       const validated = adjustedPlanSchema.safeParse(parsed);
       if (validated.success) {
-        console.log('AI Adjust Plan successful.');
+        console.log('AI Adjust Plan successful: ', validated.data);
         return { type: 'json', value: validated.data };
       }
       console.warn(`AI Adjust Plan parse failed, retrying... (${retries + 1})`);

@@ -2,6 +2,8 @@ import {
   buildWeeklyPlan,
   deleteActivity,
   fetchActivitiesPreview,
+  getAICoachInsights,
+  getAIPlanAdjustment,
   getUserActivities,
   syncSelectedActivities,
 } from '@/service/v1/activity.service.js';
@@ -18,6 +20,27 @@ export const getWeeklyPlan = async (
   const plan = await buildWeeklyPlan(userId, goal);
 
   return res.json(plan);
+};
+
+export const getAIInsights = async (
+  req: Request & { user?: any },
+  res: Response,
+) => {
+  const userId = req.user.id;
+  const { retries, ...goal } = req.body;
+
+  const insights = await getAICoachInsights(userId, goal, retries);
+  return res.json(insights);
+};
+
+export const getAIAdjustment = async (
+  req: Request & { user?: any },
+  res: Response,
+) => {
+  const userId = req.user.id;
+  const { retries, ...goal } = req.body;
+  const adjustments = await getAIPlanAdjustment(userId, goal, retries);
+  return res.json(adjustments);
 };
 
 export const previewActivities = async (

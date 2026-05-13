@@ -3,6 +3,8 @@ import { validate } from '@/middleware/validate.middleware.js';
 import {
   activityParamsSchema,
   deleteActivityQuerySchema,
+  getAIAdjustmentSchema,
+  getAIInsightsSchema,
   goalSchema,
   previewActivitiesParamsSchema,
   syncActivitiesSchema,
@@ -15,6 +17,18 @@ router.post(
   '/get-weekly-plan',
   validate({ body: goalSchema }),
   activityController.getWeeklyPlan,
+);
+
+router.post(
+  '/get-ai-insights',
+  validate({ body: getAIInsightsSchema }),
+  activityController.getAIInsights,
+);
+
+router.post(
+  '/get-ai-adjustment',
+  validate({ body: getAIAdjustmentSchema }),
+  activityController.getAIAdjustment,
 );
 
 router.get(

@@ -77,42 +77,47 @@ export const buildWeeklyPlan = async (userId: string, goal: Goal) => {
 
   const plan = generateWeeklyPlan(adjustedLoad);
 
-  let responseObject: any = {
+  return {
     currentLoad: stats.totalLoad,
     targetLoad,
     adjustedLoad,
     fatigue,
     plan,
   };
+};
 
-  if (goal.aiFeedback) {
-    const insights = await generateCoachInsights(
-      {
-        currentLoad: stats.totalLoad,
-        targetLoad,
-        plan,
-        fatigue,
-        goal,
-      },
-      goal.maxAIRetries,
-    );
-    responseObject.insights = insights;
-  }
-  if (goal.adjustPlanWithAI) {
-    const adjustments = await adjustPlanWithAI(
-      {
-        currentLoad: stats.totalLoad,
-        targetLoad,
-        plan,
-        fatigue,
-        goal,
-      },
-      goal.maxAIRetries,
-    );
-    responseObject.adjustments = adjustments;
-  }
+export const getAICoachInsights = async (
+  userId: string,
+  goal: Goal,
+  maxRetries: number = 0,
+) => {
+  const planData = await buildWeeklyPlan(userId, goal);
+  const input: CoachInput = {
+    currentLoad: planData.currentLoad,
+    targetLoad: planData.targetLoad,
+    fatigue: planData.fatigue,
+    plan: planData.plan,
+    goal,
+  };
+  const insights = await generateCoachInsights(input, maxRetries);
+  return insights;
+};
 
-  return responseObject;
+export const getAIPlanAdjustment = async (
+  userId: string,
+  goal: Goal,
+  maxRetries: number = 0,
+) => {
+  const planData = await buildWeeklyPlan(userId, goal);
+  const input: CoachInput = {
+    currentLoad: planData.currentLoad,
+    targetLoad: planData.targetLoad,
+    fatigue: planData.fatigue,
+    plan: planData.plan,
+    goal,
+  };
+  const adjustments = await adjustPlanWithAI(input, maxRetries);
+  return adjustments;
 };
 
 export const fetchActivitiesPreview = async (

@@ -5,10 +5,19 @@ export const goalSchema = z.object({
   targetDistance: z.number().optional(),
   eventDate: z.string().optional(),
   experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']),
-  aiFeedback: z.boolean().optional(),
-  adjustPlanWithAI: z.boolean().optional(),
-  maxAIRetries: z.number().optional(),
 });
+
+export const getAIInsightsSchema = z
+  .object({
+    retries: z.number().optional(),
+  })
+  .merge(goalSchema);
+
+export const getAIAdjustmentSchema = z
+  .object({
+    retries: z.number().optional(),
+  })
+  .merge(goalSchema);
 
 export const syncActivitiesSchema = z.object({
   activityIds: z.array(z.number()),

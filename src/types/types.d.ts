@@ -127,9 +127,6 @@ type Goal = {
   targetDistance?: number; // e.g. 200km/week
   eventDate?: Date;
   experienceLevel: 'beginner' | 'intermediate' | 'advanced';
-  aiFeedback?: boolean;
-  adjustPlanWithAI?: boolean;
-  maxAIRetries?: number;
 };
 
 type CoachInput = {
