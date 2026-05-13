@@ -6,6 +6,76 @@ import {
 import axios from 'axios';
 import 'dotenv/config';
 
+export const fetchStravaActivity = async (
+  activityId: number,
+  accessToken: string,
+) => {
+  const { data } = await axios.get(
+    `https://www.strava.com/api/v3/activities/${activityId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  return data;
+};
+
+export const computeActivityMetrics = (activity: StravaActivity) => {
+  const zone =
+    activity.average_heartrate && activity.max_heartrate
+      ? classifyIntensity(activity.average_heartrate, activity.max_heartrate)
+      : null;
+
+  const trainingLoad =
+    zone && activity.moving_time
+      ? calculateTrainingLoad(activity.moving_time, zone)
+      : null;
+
+  return { zone, trainingLoad };
+};
+
+export const updateGoalAfterActivity = async (
+  userId: string,
+  activityDate: Date,
+  previousLoad: number,
+  newLoad: number,
+) => {
+  const deltaLoad = newLoad - previousLoad;
+
+  if (!deltaLoad) return;
+
+  const goal = await prisma.goal.findFirst({
+    where: {
+      userId,
+      weekStart: { lte: activityDate },
+      weekEnd: { gte: activityDate },
+    },
+  });
+
+  if (!goal) return;
+
+  const updatedLoad = goal.currentLoad + deltaLoad;
+
+  let status: string = 'on_track';
+
+  if (updatedLoad > goal.targetLoad * 1.2) {
+    status = 'overtrained';
+  } else if (updatedLoad < goal.targetLoad * 0.8) {
+    status = 'undertrained';
+  }
+
+  await prisma.goal.update({
+    where: { id: goal.id },
+    data: {
+      currentLoad: updatedLoad,
+      fatigue: updatedLoad,
+      status,
+    },
+  });
+};
+
 export const connectStrava = ({
   userId,
   newConnection = true,
@@ -140,31 +210,28 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
 
   token = await getValidAccessToken(token);
 
-  try {
-    if (!token) {
-      throw Error('No validated token found for athlete: ' + athleteId);
-    }
-    const response = await axios.get(
-      `https://www.strava.com/api/v3/activities/${activityId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token.accessToken}`,
-        },
-      },
+  const executeSync = async (accessToken: string) => {
+    const activity: StravaActivity = await fetchStravaActivity(
+      activityId,
+      accessToken,
     );
+    if (activity.type !== 'Ride') {
+      console.log('Skipping non-ride activity: ', activity.id);
+      return { activityId: activity.id, skipped: true };
+    }
+    const { zone, trainingLoad } = computeActivityMetrics(activity);
 
-    const activity: StravaActivity = response.data;
+    const activityDate = new Date(activity.start_date);
 
-    const zone =
-      activity.average_heartrate && activity.max_heartrate
-        ? classifyIntensity(activity.average_heartrate, activity.max_heartrate)
-        : null;
+    //  Get existing activity (for delta)
+    const existing = await prisma.activity.findUnique({
+      where: { id: BigInt(activity.id) },
+    });
 
-    const trainingLoad =
-      zone && activity.moving_time
-        ? calculateTrainingLoad(activity.moving_time, zone)
-        : null;
+    const previousLoad = existing?.trainingLoad || 0;
+    const newLoad = trainingLoad || 0;
 
+    //  Upsert activity
     await prisma.activity.upsert({
       where: { id: BigInt(activity.id) },
       update: {
@@ -176,14 +243,14 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
         avgHR: activity.average_heartrate ?? null,
         maxHR: activity.max_heartrate ?? null,
         elevationGain: activity.total_elevation_gain ?? null,
-        startDate: new Date(activity.start_date),
+        startDate: activityDate,
         timezone: activity.timezone,
         zone,
         trainingLoad,
       },
       create: {
         id: BigInt(activity.id),
-        userId: token.userId,
+        userId: token?.userId || '',
         name: activity.name,
         type: activity.type,
         distance: activity.distance,
@@ -192,86 +259,38 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
         avgHR: activity.average_heartrate ?? null,
         maxHR: activity.max_heartrate ?? null,
         elevationGain: activity.total_elevation_gain ?? null,
-        startDate: new Date(activity.start_date),
+        startDate: activityDate,
         timezone: activity.timezone,
         zone,
         trainingLoad,
       },
     });
 
+    //  Update goal (delta-safe)
+    await updateGoalAfterActivity(
+      token?.userId || '',
+      activityDate,
+      previousLoad,
+      newLoad,
+    );
+
     console.log('Activity synced: ', activity.id);
 
     return { activityId: activity.id };
+  };
+
+  try {
+    return await executeSync(token?.accessToken || '');
   } catch (error: any) {
     if (error.response?.status === 401) {
-      console.log('Token invalid, refreshing and retrying...');
+      console.log('Token expired, refreshing...');
 
       token = await refreshAccessToken(token);
 
-      const retry = await axios.get(
-        `https://www.strava.com/api/v3/activities/${activityId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token.accessToken}`,
-          },
-        },
-      );
-
-      const activity: StravaActivity = retry.data;
-
-      const zone =
-        activity.average_heartrate && activity.max_heartrate
-          ? classifyIntensity(
-              activity.average_heartrate,
-              activity.max_heartrate,
-            )
-          : null;
-
-      const trainingLoad =
-        zone && activity.moving_time
-          ? calculateTrainingLoad(activity.moving_time, zone)
-          : null;
-
-      await prisma.activity.upsert({
-        where: { id: BigInt(activity.id) },
-        update: {
-          name: activity.name,
-          type: activity.type,
-          distance: activity.distance,
-          movingTime: activity.moving_time,
-          elapsedTime: activity.elapsed_time,
-          avgHR: activity.average_heartrate ?? null,
-          maxHR: activity.max_heartrate ?? null,
-          elevationGain: activity.total_elevation_gain ?? null,
-          startDate: new Date(activity.start_date),
-          timezone: activity.timezone,
-          zone,
-          trainingLoad,
-        },
-        create: {
-          id: BigInt(activity.id),
-          userId: token.userId,
-          name: activity.name,
-          type: activity.type,
-          distance: activity.distance,
-          movingTime: activity.moving_time,
-          elapsedTime: activity.elapsed_time,
-          avgHR: activity.average_heartrate ?? null,
-          maxHR: activity.max_heartrate ?? null,
-          elevationGain: activity.total_elevation_gain ?? null,
-          startDate: new Date(activity.start_date),
-          timezone: activity.timezone,
-          zone,
-          trainingLoad,
-        },
-      });
-
-      console.log('Activity synced after retry: ', activity.id);
-
-      return { activityId: activity.id };
-    } else {
-      throw Error('Sync error: ' + error.message);
+      return await executeSync(token.accessToken);
     }
+
+    throw Error('Sync error: ' + error.message);
   }
 };
 

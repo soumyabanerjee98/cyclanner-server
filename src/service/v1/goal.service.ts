@@ -71,3 +71,50 @@ export const createWeeklyGoal = async (
     return { goal, plans, updatedUser };
   });
 };
+
+export const getCurrentGoal = async (userId: string) => {
+  const now = new Date();
+
+  // normalize today's boundaries
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+
+  // find goal covering today
+  const goal = await prisma.goal.findFirst({
+    where: {
+      userId,
+      weekStart: { lte: end },
+      weekEnd: { gte: start },
+    },
+    include: {
+      plan: {
+        orderBy: { version: 'desc' },
+      },
+      weeklySummary: true,
+    },
+  });
+
+  if (!goal) {
+    throw new Error('No active goal found for current week');
+  }
+
+  const latestPlanMap = new Map<string, any>();
+
+  for (const p of goal.plan) {
+    const existing = latestPlanMap.get(p.day);
+
+    if (!existing || p.version > existing.version) {
+      latestPlanMap.set(p.day, p);
+    }
+  }
+
+  const latestPlan = Array.from(latestPlanMap.values());
+
+  return {
+    ...goal,
+    plan: latestPlan,
+  };
+};

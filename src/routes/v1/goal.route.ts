@@ -11,4 +11,6 @@ router.post(
   goalController.createGoal,
 );
 
+router.get('/current-goal', goalController.getCurrentGoal);
+
 export default router;

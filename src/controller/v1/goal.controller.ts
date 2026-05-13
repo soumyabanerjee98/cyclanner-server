@@ -28,3 +28,12 @@ export const createGoal = async (
 
   return res.json(result);
 };
+
+export const getCurrentGoal = async (
+  req: Request & { user?: any },
+  res: Response,
+) => {
+  const userId = req.user.userId;
+  const result = await goalService.getCurrentGoal(userId);
+  return res.json(result);
+};
