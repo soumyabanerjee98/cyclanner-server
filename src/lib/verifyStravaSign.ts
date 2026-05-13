@@ -5,7 +5,7 @@ export const verifyStravaSignature = (
   rawBody: Buffer,
   signatureHeader: string,
 ) => {
-  const secret = process.env.STRAVA_VERIFY_TOKEN!;
+  const secret = process.env.STRAVA_CLIENT_SECRET!;
 
   // Parse header
   const parts = Object.fromEntries(
