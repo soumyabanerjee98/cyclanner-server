@@ -27,12 +27,10 @@ model User {
   stravaToken StravaToken?
   activities  Activity[]
 
-  currentGoalId String?  @unique
-  currentGoal   Goal?    @relation("CurrentGoal", fields: [currentGoalId], references: [id])
+  currentGoalId String?
 
-  goals Goal[] @relation("UserGoals")
-
-  insights DailyInsight[]
+  goals     Goal[] @relation("UserGoals")
+  insights  DailyInsight[]
 }
 
 model StravaToken {
@@ -90,20 +88,18 @@ model Goal {
   userId String
   user   User   @relation("UserGoals", fields: [userId], references: [id])
 
-  currentForUser User? @relation("CurrentGoal")
+  weekStart DateTime
+  weekEnd   DateTime
 
-  weekStart     DateTime
-  weekEnd       DateTime
+  currentLoad  Float
+  targetLoad   Float
+  adjustedLoad Float
+  fatigue      Float
 
-  currentLoad   Float
-  targetLoad    Float
-  adjustedLoad  Float
-  fatigue       Float
+  status       String? // on_track, overtrained, undertrained
 
-  status        String?  // "on_track", "overtrained", "undertrained"
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt 
 
   plan          Plan[]
   insights      DailyInsight[]
@@ -111,6 +107,8 @@ model Goal {
 
   @@index([userId])
   @@index([weekStart])
+
+  @@unique([userId, weekStart])
 }
 
 model Plan {
@@ -124,13 +122,13 @@ model Plan {
 
   load      Float
 
-  version   Int      @default(1) // IMPORTANT for AI adjustments
-
+  version   Int      @default(1)
   isAdjusted Boolean @default(false)
 
   createdAt DateTime @default(now())
 
   @@index([goalId])
+  @@unique([goalId, day, version])
 }
 
 model DailyInsight {
@@ -144,22 +142,21 @@ model DailyInsight {
 
   date      DateTime
 
-  plannedLoad   Float
-  actualLoad    Float
-  deviation     Float
+  plannedLoad Float
+  actualLoad  Float
+  deviation   Float
 
-  status        String   // overtrained, undertrained, on_track
+  status String // overtrained, undertrained, on_track
 
-  fatigueScore  Float?
-  strainScore   Float?
+  fatigueScore Float?
+  strainScore  Float?
 
-  commentary    String?
+  commentary String?
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  @@unique([userId, date]) 
+  @@unique([userId, date])
   @@index([goalId])
-  @@index([userId])
   @@index([date])
 }
 
