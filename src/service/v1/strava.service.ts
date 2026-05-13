@@ -215,6 +215,7 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
       activityId,
       accessToken,
     );
+
     if (activity.type !== 'Ride') {
       console.log('Skipping non-ride activity: ', activity.id);
       return { activityId: activity.id, skipped: true };
