@@ -96,8 +96,10 @@ export const updateGoalAfterActivity = async (
 ) => {
   const deltaLoad = newLoad - previousLoad;
 
-  if (!deltaLoad) return;
+  // No change
+  if (deltaLoad === 0) return;
 
+  // 1. Find active goal
   const goal = await prisma.goal.findFirst({
     where: {
       userId,
@@ -108,26 +110,58 @@ export const updateGoalAfterActivity = async (
 
   if (!goal) return;
 
-  const updatedLoad = goal.currentLoad + deltaLoad;
+  // 2. Update current weekly load
+  const updatedCurrentLoad = goal.currentLoad + deltaLoad;
 
-  let status: string = 'on_track';
+  /**
+   * FATIGUE MODEL
+   *
+   * fatigue = ATL
+   * freshness = TSB
+   * fitness = CTL
+   */
 
-  if (updatedLoad > goal.targetLoad * 1.2) {
-    status = 'overtrained';
-  } else if (updatedLoad < goal.targetLoad * 0.8) {
-    status = 'undertrained';
+  const fatigue = atl ?? goal.fatigue;
+
+  // 3. Goal status logic
+  let status: 'on_track' | 'overtrained' | 'undertrained' = 'on_track';
+
+  /**
+   * Better logic:
+   * Use ATL/TSB primarily
+   */
+
+  if (tsb !== undefined) {
+    if (tsb < -20) {
+      status = 'overtrained';
+    } else if (updatedCurrentLoad < goal.targetLoad * 0.8) {
+      status = 'undertrained';
+    }
+  } else {
+    // Fallback logic
+    if (updatedCurrentLoad > goal.targetLoad * 1.2) {
+      status = 'overtrained';
+    } else if (updatedCurrentLoad < goal.targetLoad * 0.8) {
+      status = 'undertrained';
+    }
   }
 
+  // 4. Update goal
+  const updateData: any = {
+    currentLoad: updatedCurrentLoad,
+    fatigue,
+    status,
+  };
+
+  if (atl !== undefined) updateData.atl = atl;
+  if (ctl !== undefined) updateData.ctl = ctl;
+  if (tsb !== undefined) updateData.tsb = tsb;
+
   await prisma.goal.update({
-    where: { id: goal.id },
-    data: {
-      currentLoad: updatedLoad,
-      fatigue: updatedLoad,
-      status,
-      atl: atl ?? null,
-      ctl: ctl ?? null,
-      tsb: tsb ?? null,
+    where: {
+      id: goal.id,
     },
+    data: updateData,
   });
 };
 
