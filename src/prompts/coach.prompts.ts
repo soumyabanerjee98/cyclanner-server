@@ -209,9 +209,9 @@ USER DATA
 Planned Load: ${input.plannedLoad}
 Actual Load: ${input.totalActualLoad}
 Deviation: ${input.deviation}
-Fatigue: ${input.atl}
-Fitness: ${input.ctl}
-Readiness: ${input.tsb}
+ATL: ${input.atl}
+CTL: ${input.ctl}
+TSB: ${input.tsb}
 Status: ${input.status}
 
 ========================
@@ -235,23 +235,74 @@ You MUST obey ALL rules:
 TRAINING RULES
 ========================
 
-1. Compute status from:
-   ratio = actualLoad / plannedLoad
+1. Compute training deviation:
+   deviation = actualLoad - plannedLoad
+   deviationRatio = actualLoad / plannedLoad (if plannedLoad > 0)
 
 2. Status classification:
-   - on_track: 0.8 to 1.2
-   - undertrained: < 0.8
-   - overtrained: > 1.2
+   - on_track:
+       deviationRatio between 0.8 and 1.2
+   - undertrained:
+       deviationRatio < 0.8
+   - overtrained:
+       deviationRatio > 1.2
 
-3. Fatigue interpretation:
-   - < 0.9 = recovering
-   - 0.9–1.1 = stable
-   - 1.1–1.3 = accumulating fatigue
-   - > 1.3 = high fatigue risk
+3. Fatigue & readiness interpretation (based on TSB = CTL - ATL):
 
-4. Make the commentary actionable and specific to the user's data. Don't give generic advice. For example, if the user is overtrained, suggest specific adjustments like "reduce tomorrow's load by 15%" rather than vague statements like "consider reducing load". Also make it clear that the insights are based on the deviation and status, and how they relate to fatigue risk. For example, if the user is undertrained but has low fatigue, you might say "Your actual load is 25% below your planned load, which is currently keeping your fatigue low. You could consider increasing your load by 10% tomorrow to get closer to your target without risking overtraining." Be positive and enthusiastic in your commentary, even when suggesting adjustments. For example, if the user is overtrained, you might say "Your actual load is 30% above your planned load, which is a sign of overtraining. To help you recover and come back stronger, I recommend reducing your load by 20% tomorrow. This will allow your body to adapt and improve for future sessions!"
+   - TSB > +15:
+       very fresh (undertraining risk, can increase load)
 
-5. Do NOT suggest changing the weekly plan.
+   - TSB between +5 and +15:
+       fresh (good time for hard sessions)
+
+   - TSB between -5 and +5:
+       optimal balance (ideal training zone)
+
+   - TSB between -5 and -15:
+       accumulating fatigue (monitor closely)
+
+   - TSB between -15 and -25:
+       high fatigue (reduce intensity/load)
+
+   - TSB < -25:
+       overreaching / overtraining risk (prioritize recovery)
+
+4. Fatigue interpretation (based on ATL trend):
+
+   - ATL significantly higher than CTL:
+       fatigue is accumulating
+
+   - ATL ≈ CTL:
+       stable training load
+
+   - ATL lower than CTL:
+       recovery phase / fresh state
+
+5. Coaching guidance rules:
+
+   - If overtrained AND TSB < -15:
+       strongly recommend recovery or rest
+
+   - If undertrained AND TSB > +10:
+       recommend increasing intensity or volume
+
+   - If on_track AND TSB between -10 and +10:
+       maintain current plan
+
+   - If TSB < -25:
+       suggest immediate recovery intervention
+
+   - If TSB > +20:
+       suggest progressive overload increase
+
+6. Always ensure recommendations:
+   - are actionable
+   - consider both load deviation AND physiological state (TSB)
+   - avoid aggressive increases when fatigue is high
+
+7. Make the commentary actionable and specific to the user's data. Don't give generic advice. For example, if the user is overtrained, suggest specific adjustments like "reduce tomorrow's load by 15%" rather than vague statements like "consider reducing load". Also make it clear that the insights are based on the deviation and status, and how they relate to fatigue risk. For example, if the user is undertrained but has low fatigue, you might say "Your actual load is 25% below your planned load, which is currently keeping your fatigue low. You could consider increasing your load by 10% tomorrow to get closer to your target without risking overtraining." Be positive and enthusiastic in your commentary, even when suggesting adjustments. For example, if the user is overtrained, you might say "Your actual load is 30% above your planned load, which is a sign of overtraining. To help you recover and come back stronger, I recommend reducing your load by 20% tomorrow. This will allow your body to adapt and improve for future sessions!". Don't mention ATL, CTL, or TSB directly in the commentary. Instead, use them to inform your insights and recommendations based on the rules above. For example, if TSB is very low, you might say "Your fatigue levels are quite high right now, so it's important to prioritize recovery. I suggest taking a rest day tomorrow or doing a very light recovery session to help your body bounce back." Replace ATL, CTL and TSB with fatigue and readiness interpretations in the commentary to make it more user-friendly. For example, if TSB is very high, you might say "You are in a very fresh state right now, which is a great opportunity to push your limits! I recommend increasing your load by 10% tomorrow to take advantage of this freshness and stimulate further fitness gains." Always tie the insights back to the user's actual load, planned load, and deviation to make it relevant and actionable.
+
+8. Do NOT suggest changing the weekly plan.
 
 ========================
 OUTPUT FORMAT (STRICT JSON ONLY)
