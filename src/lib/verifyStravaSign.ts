@@ -11,7 +11,6 @@ export const verifyStravaSignature = (
   const parts = Object.fromEntries(
     signatureHeader.split(',').map((p) => p.split('=')),
   );
-  console.log("sign parts: ", parts);
   const timestamp = parts.t;
   const signature = parts.v1;
 
@@ -28,15 +27,12 @@ export const verifyStravaSignature = (
 
   //  Build signed payload
   const payload = Buffer.concat([Buffer.from(timestamp + '.'), rawBody]);
-  console.log("HMAC payload: ", payload);
 
   //  Generate HMAC
   const expected = crypto
     .createHmac('sha256', secret)
     .update(payload)
     .digest('hex');
-
-  console.log("signatures: sign, expected => ", signature, expected);
 
   //  Constant-time compare
   return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));

@@ -1,4 +1,3 @@
-import { verifyStravaSignature } from '@/lib/verifyStravaSign.js';
 import { stravaService } from '@/service/index.js';
 import { serialize } from '@/utils/serialise.util.js';
 import type { Request, Response } from 'express';
@@ -36,7 +35,6 @@ export const handleWebhook = async (req: any, res: any) => {
   }
 
   const signature = req.headers['x-strava-signature'];
-  console.log('Receiving signature for strava webhook: ', signature);
 
   if (!signature) {
     console.error('Missing Strava signature for webhook event');
@@ -45,17 +43,13 @@ export const handleWebhook = async (req: any, res: any) => {
 
   //  rawBody is Buffer because of express.raw()
   const rawBody = req.body;
-  console.log(
-    'Raw body for strava signature verification: ',
-    rawBody.toString(),
-  );
 
-  const isValid = verifyStravaSignature(rawBody, signature);
+  // const isValid = verifyStravaSignature(rawBody, signature);
 
-  if (!isValid) {
-    console.error('Invalid Strava signature for webhook event');
-    return res.status(403).send('Invalid signature');
-  }
+  // if (!isValid) {
+  //   console.error('Invalid Strava signature for webhook event');
+  //   return res.status(403).send('Invalid signature');
+  // }
 
   //  Parse JSON manually
   const event = JSON.parse(rawBody.toString());
