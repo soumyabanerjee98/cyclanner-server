@@ -15,6 +15,63 @@ import axios from 'axios';
 import { experienceMultiplier } from '@/config/strava.config.js';
 import { adjustPlanWithAI, generateCoachInsights } from './ai.service.js';
 
+export const updateUserPhysiology = async (userId: string) => {
+  // 1. Max HR from all activities
+  const maxHrAgg = await prisma.activity.aggregate({
+    where: {
+      userId,
+      maxHR: {
+        not: null,
+      },
+    },
+    _max: {
+      maxHR: true,
+    },
+  });
+
+  const computedMaxHR = maxHrAgg._max.maxHR || null;
+
+  // 2. Fetch user
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // 3. Auto resting HR only if missing
+  let restingHR = user.restingHR;
+
+  if (!restingHR) {
+    const easyRide = await prisma.activity.findFirst({
+      where: {
+        userId,
+        avgHR: {
+          not: null,
+        },
+        zone: 'z1',
+      },
+      orderBy: {
+        avgHR: 'asc',
+      },
+    });
+
+    if (easyRide?.avgHR) {
+      restingHR = Math.max(40, easyRide.avgHR - 10);
+    }
+  }
+
+  // 4. Update user
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      maxHR: computedMaxHR || user.maxHR,
+      restingHR,
+    },
+  });
+};
+
 export const getWeeklyStats = async (userId: string) => {
   const last7Days = new Date();
   last7Days.setDate(last7Days.getDate() - 7);
@@ -253,6 +310,8 @@ export const deleteActivity = async (userId: string, activityId: string) => {
       id: BigInt(activityId),
     },
   });
+
+  await updateUserPhysiology(userId);
 
   return { message: 'Activity deleted successfully', deletedActivity };
 };

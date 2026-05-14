@@ -6,6 +6,7 @@ import {
 } from '@/utils/strava.util.js';
 import axios from 'axios';
 import 'dotenv/config';
+import { updateUserPhysiology } from './activity.service.js';
 
 export const fetchStravaActivity = async (
   activityId: number,
@@ -352,7 +353,7 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
         trainingLoad,
       },
     });
-
+    await updateUserPhysiology(token?.userId || '');
     const { atl, ctl, tsb } = await updateTrainingState(
       token?.userId || '',
       activityDate,
