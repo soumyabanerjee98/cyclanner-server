@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const getDailyInsightsParamsSchema = z.object({
+export const getDailyInsightsQuerySchema = z.object({
   date: z
     .string()
     .optional()

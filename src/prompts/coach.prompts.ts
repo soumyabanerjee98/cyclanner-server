@@ -336,3 +336,63 @@ If constraints conflict:
 - never break format under any condition
 `;
 };
+
+export const buildWeeklyInsight = (input: {
+  plannedLoad: number;
+  actualLoad: number;
+  balance: number;
+  adherenceScore: number;
+  trend: string;
+  fatigueRisk: string;
+}) => {
+  return `
+You are an expert cycling coach.
+
+Analyze the user's weekly training summary and return ONLY valid JSON.
+
+### Input:
+- Planned Load: ${input.plannedLoad}
+- Actual Load: ${input.actualLoad}
+- Balance: ${input.balance}
+- Adherence Score: ${input.adherenceScore}
+- Trend: ${input.trend}
+- Fatigue Risk: ${input.fatigueRisk}
+
+### Instructions:
+
+1. Evaluate what went well and what didn't
+2. Explain current condition (fatigue, performance, progression)
+3. Provide actionable suggestions for next week
+
+### Output JSON format:
+
+{
+  "summary": "short weekly summary",
+  "positives": ["point1", "point2"],
+  "issues": ["point1", "point2"],
+  "currentState": "user condition analysis",
+  "recommendations": ["tip1", "tip2", "tip3"]
+}
+  of type
+{
+  summary: string;
+  positives: string[];
+  issues: string[];
+  currentState: string;
+  recommendations: string[];
+}
+
+GROUND RULES:
+- Be specific and data-driven in your analysis
+- Be motivational and constructive in your recommendations
+- Mention what went well to encourage the user, even if the week was tough. Give insights like "You had a great long ride on Wednesday that contributed significantly to your fitness gains this week!" or "Your adherence was above 90%, which is fantastic consistency!" Also suggest improvements based on the data, like "Your actual load was 25% below your planned load, which may have limited your fitness progression. Next week, try to hit at least 90% of your planned load to maximize gains." Always tie insights back to the user's data to make it relevant and actionable. For example, if the user has a high fatigue risk, you might say "Your fatigue levels are quite high this week, likely due to the significant overload on Thursday. To help you recover and come back stronger, I recommend incorporating an extra rest day or a light recovery session next week."
+- Focus on actionable insights based on the user's data
+- Use the fatigue risk and trend to inform your recommendations
+- Ensure all output is valid JSON with no extra text or formatting
+
+IMPORTANT:
+- Return ONLY JSON
+- No markdown
+- No explanation
+`;
+};

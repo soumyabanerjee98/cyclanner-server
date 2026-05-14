@@ -2,11 +2,13 @@ import {
   buildAdjustmentPrompt,
   buildCoachingPrompt,
   buildDailyInsight,
+  buildWeeklyInsight,
 } from '@/prompts/coach.prompts.js';
 import {
   adjustedPlanSchema,
   coachInsightsSchema,
   dailyInsightsSchema,
+  weeklyInsightsSchema,
 } from '@/validator/ai.validator.js';
 import 'dotenv/config';
 import Groq from 'groq-sdk';
@@ -166,5 +168,56 @@ export const generateDailyInsights = async (
     }
   } while (retries < maxRetries);
   console.log('AI Daily Insights failed!.');
+  return { type: 'string', value: raw };
+};
+
+export const generateWeeklyAIInsight = async (
+  input: {
+    plannedLoad: number;
+    actualLoad: number;
+    balance: number;
+    adherenceScore: number;
+    trend: string;
+    fatigueRisk: string;
+  },
+  maxRetries = 2,
+) => {
+  const prompt = buildWeeklyInsight(input);
+  let retries = 0;
+  let raw = '';
+  do {
+    try {
+      raw = await callAI(
+        [
+          {
+            role: 'system',
+            content:
+              'You are an expert cycling analyst who creates detailed weekly summary insights.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        0.4,
+      );
+
+      const parsed = JSON.parse(raw);
+
+      const validated = weeklyInsightsSchema.safeParse(parsed);
+      if (validated.success) {
+        console.log('AI Weekly Insights successful: ', validated.data);
+        return { type: 'json', value: validated.data };
+      }
+      console.warn(
+        `AI Weekly Insights parse failed, retrying... (${retries + 1})`,
+      );
+      retries++;
+    } catch (error) {
+      console.warn(`AI Weekly Insights error attempt ${retries + 1}`, error);
+      retries++;
+    }
+  } while (retries < maxRetries);
+  console.log('AI Weekly Insights failed!.');
   return { type: 'string', value: raw };
 };

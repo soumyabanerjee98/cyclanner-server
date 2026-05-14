@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { positive, z } from 'zod';
 
 export const adjustedPlanSchema = z.object({
   adjustedPlan: z.array(
@@ -24,4 +24,12 @@ export const dailyInsightsSchema = z.object({
   fatigueScore: z.number(),
   strainScore: z.number(),
   commentary: z.string(),
+});
+
+export const weeklyInsightsSchema = z.object({
+  summary: z.string(),
+  positives: z.array(z.string()),
+  issues: z.array(z.string()),
+  currentState: z.string(),
+  recommendations: z.array(z.string()),
 });

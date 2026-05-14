@@ -23,7 +23,7 @@ export const syncActivitiesSchema = z.object({
   activityIds: z.array(z.number()),
 });
 
-export const activityParamsSchema = z.object({
+export const activityQuerySchema = z.object({
   page: z
     .string()
     .optional()
@@ -40,7 +40,7 @@ export const activityParamsSchema = z.object({
   zone: z.enum(['z1', 'z2', 'z3', 'z4', 'z5']).optional(),
 });
 
-export const previewActivitiesParamsSchema = z.object({
+export const previewActivitiesQuerySchema = z.object({
   page: z
     .string()
     .optional()

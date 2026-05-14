@@ -144,3 +144,11 @@ type CoachInput = {
   plan: Plan[];
   goal: Goal;
 };
+
+type WeeklyAIInsight = {
+  summary: string; // overall week recap
+  positives: string[]; // what went well
+  issues: string[]; // what went wrong
+  currentState: string; // where user stands now
+  recommendations: string[]; // actionable tips
+};

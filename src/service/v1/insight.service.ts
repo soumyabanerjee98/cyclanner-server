@@ -13,6 +13,21 @@ export const getDailyInsights = async (userId: string, date: Date) => {
   const end = new Date(date);
   end.setHours(23, 59, 59, 999);
 
+  // 0. Check existing insight
+  const existingInsight = await prisma.dailyInsight.findFirst({
+    where: {
+      userId,
+      date: {
+        gte: start,
+        lte: end,
+      },
+    },
+  });
+
+  if (existingInsight) {
+    return existingInsight;
+  }
+
   // 1. Fetch activities
   const activities = await prisma.activity.findMany({
     where: {

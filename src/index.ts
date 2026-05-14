@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express from 'express';
+import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import { validateApiKey } from './middleware/apiKey.middleware.js';
 import routes from '@/routes/index.js';
@@ -29,7 +29,7 @@ app.get('/health', (_, res) => {
   res.json({ status: 'OK' });
 });
 
-app.use((err: any, req: any, res: any, next: any) => {
+app.use((err: any, req: Request, res: Response, next: any) => {
   console.error(err);
   return res.status(500).json({
     error: 'Internal Server Error',

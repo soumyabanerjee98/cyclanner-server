@@ -1,12 +1,12 @@
 import { activityController } from '@/controller/index.js';
 import { validate } from '@/middleware/validate.middleware.js';
 import {
-  activityParamsSchema,
+  activityQuerySchema,
   deleteActivityQuerySchema,
   getAIAdjustmentSchema,
   getAIInsightsSchema,
   goalSchema,
-  previewActivitiesParamsSchema,
+  previewActivitiesQuerySchema,
   syncActivitiesSchema,
 } from '@/validator/activity.validator.js';
 import { Router } from 'express';
@@ -33,12 +33,12 @@ router.post(
 
 router.get(
   '/preview-strava-activities',
-  validate({ params: previewActivitiesParamsSchema }),
+  validate({ query: previewActivitiesQuerySchema }),
   activityController.previewActivities,
 );
 router.get(
   '/get-activities',
-  validate({ params: activityParamsSchema }),
+  validate({ query: activityQuerySchema }),
   activityController.getActivities,
 );
 router.post(
@@ -48,7 +48,7 @@ router.post(
 );
 router.delete(
   '/delete-activity/:activityId',
-  validate({ query: deleteActivityQuerySchema }),
+  validate({ params: deleteActivityQuerySchema }),
   activityController.removeActivity,
 );
 
