@@ -24,18 +24,20 @@ export const fetchStravaActivity = async (
   return data;
 };
 
-export const computeActivityMetrics = (activity: StravaActivity) => {
+export const computeActivityMetrics = (
+  activity: StravaActivity,
+  userMaxHr: number | null,
+) => {
   let zone: string | null = null;
   let trainingLoad: number | null = null;
 
   const durationMin = activity.moving_time ? activity.moving_time / 60 : 0;
 
   //  1. HR (best)
-  if (activity.average_heartrate && activity.max_heartrate) {
-    zone = classifyIntensity(
-      activity.average_heartrate,
-      activity.max_heartrate,
-    );
+  const maxHr = userMaxHr ?? activity.max_heartrate;
+
+  if (activity.average_heartrate && maxHr !== undefined) {
+    zone = classifyIntensity(activity.average_heartrate, maxHr);
 
     trainingLoad = calculateTrainingLoad(activity.moving_time, zone);
 
@@ -307,7 +309,16 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
       return { activityId: activity.id, skipped: true };
     }
 
-    const { zone, trainingLoad } = computeActivityMetrics(activity);
+    const user = await prisma.user.findUnique({
+      where: {
+        id: token?.userId || '',
+      },
+    });
+
+    const { zone, trainingLoad } = computeActivityMetrics(
+      activity,
+      user?.maxHR || null,
+    );
 
     const activityDate = new Date(activity.start_date);
 
