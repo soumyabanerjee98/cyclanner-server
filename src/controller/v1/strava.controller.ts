@@ -1,6 +1,7 @@
 import { stravaService } from '@/service/index.js';
 import { serialize } from '@/utils/serialise.util.js';
 import type { Request, Response } from 'express';
+import path from 'path';
 
 export const connectStrava = (req: Request & { user?: any }, res: Response) => {
   const userId = req.user.userId;
@@ -17,13 +18,27 @@ export const stravaCallback = async (req: Request, res: Response) => {
   const { code, state } = req.query;
   const decoded = JSON.parse(Buffer.from(state as string, 'base64').toString());
   const { userId, newConnection, resetData } = decoded;
-  const result = await stravaService.stravaCallback({
-    code: code as string,
-    userId,
-    newConnection,
-    resetData,
-  });
-  return res.json(serialize(result));
+  try {
+    await stravaService.stravaCallback({
+      code: code as string,
+      userId,
+      newConnection,
+      resetData,
+    });
+    return res.sendFile(
+      path.join(
+        process.cwd(),
+        'src/template/html/strava_callback_success.html',
+      ),
+    );
+  } catch {
+    return res.sendFile(
+      path.join(
+        process.cwd(),
+        'src/template/html/strava_callback_failure.html',
+      ),
+    );
+  }
 };
 
 export const handleWebhook = async (req: any, res: any) => {
