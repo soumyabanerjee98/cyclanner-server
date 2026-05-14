@@ -26,9 +26,15 @@ export const validate =
 
       next();
     } catch (error: any) {
+      let details;
+      try {
+        details = JSON.parse((error as ZodError).message);
+      } catch {
+        details = (error as ZodError).message;
+      }
       return res.status(400).json({
         error: 'Validation failed',
-        details: JSON.parse((error as ZodError).message),
+        details,
       });
     }
   };

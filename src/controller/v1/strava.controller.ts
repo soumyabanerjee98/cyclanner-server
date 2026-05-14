@@ -54,8 +54,6 @@ export const handleWebhook = async (req: any, res: any) => {
   //  Parse JSON manually
   const event = JSON.parse(rawBody.toString());
 
-  console.log('Strava Webhook Event:', event);
-
   const result = await stravaService.processWebhookEvent(event);
 
   return res.json({ success: true, result });

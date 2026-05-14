@@ -195,7 +195,7 @@ export const stravaCallback = async ({
   newConnection: boolean;
   resetData: boolean;
 }) => {
-  console.log('Strava Callback: ', { code, userId });
+  console.log('Strava Callback: ', { code, userId, newConnection, resetData });
 
   const response = await axios.post('https://www.strava.com/oauth/token', {
     client_id: process.env.STRAVA_CLIENT_ID,
