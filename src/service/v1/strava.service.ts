@@ -23,17 +23,62 @@ export const fetchStravaActivity = async (
 };
 
 export const computeActivityMetrics = (activity: StravaActivity) => {
-  const zone =
-    activity.average_heartrate && activity.max_heartrate
-      ? classifyIntensity(activity.average_heartrate, activity.max_heartrate)
-      : null;
+  let zone: string | null = null;
+  let trainingLoad: number | null = null;
 
-  const trainingLoad =
-    zone && activity.moving_time
-      ? calculateTrainingLoad(activity.moving_time, zone)
-      : null;
+  const durationMin = activity.moving_time ? activity.moving_time / 60 : 0;
 
-  return { zone, trainingLoad };
+  //  1. HR (best)
+  if (activity.average_heartrate && activity.max_heartrate) {
+    zone = classifyIntensity(
+      activity.average_heartrate,
+      activity.max_heartrate,
+    );
+
+    trainingLoad = calculateTrainingLoad(activity.moving_time, zone);
+
+    return { zone, trainingLoad, source: 'hr' };
+  }
+
+  //  2. Suffer score (FIXED)
+  if (activity.suffer_score && durationMin > 0) {
+    const intensityPerMin = activity.suffer_score / durationMin;
+
+    if (intensityPerMin < 0.5) zone = 'z1';
+    else if (intensityPerMin < 1.5) zone = 'z2';
+    else if (intensityPerMin < 2.5) zone = 'z3';
+    else if (intensityPerMin < 4) zone = 'z4';
+    else zone = 'z5';
+
+    trainingLoad = calculateTrainingLoad(activity.moving_time, zone);
+
+    return { zone, trainingLoad, source: 'suffer_score' };
+  }
+
+  //  3. Speed fallback
+  if (activity.average_speed && activity.moving_time) {
+    const speed = activity.average_speed;
+
+    if (speed < 4) zone = 'z1';
+    else if (speed < 6) zone = 'z2';
+    else if (speed < 8) zone = 'z3';
+    else if (speed < 10) zone = 'z4';
+    else zone = 'z5';
+
+    trainingLoad = calculateTrainingLoad(activity.moving_time, zone);
+
+    return { zone, trainingLoad, source: 'speed' };
+  }
+
+  //  4. Time fallback
+  if (activity.moving_time) {
+    zone = 'z2';
+    trainingLoad = calculateTrainingLoad(activity.moving_time, zone);
+
+    return { zone, trainingLoad, source: 'time' };
+  }
+
+  return { zone: null, trainingLoad: null, source: 'none' };
 };
 
 export const updateGoalAfterActivity = async (
@@ -220,7 +265,16 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
       console.log('Skipping non-ride activity: ', activity.id);
       return { activityId: activity.id, skipped: true };
     }
-    const { zone, trainingLoad } = computeActivityMetrics(activity);
+
+    const { zone, trainingLoad, source } = computeActivityMetrics(activity);
+
+    console.log(
+      zone,
+      trainingLoad,
+      source,
+      'computed metrics for activity: ',
+      activity.id,
+    );
 
     const activityDate = new Date(activity.start_date);
 
