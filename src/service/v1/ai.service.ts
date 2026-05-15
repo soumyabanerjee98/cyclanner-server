@@ -1,3 +1,4 @@
+import AppError from '@/handler/error.handler.js';
 import {
   buildCoachingPrompt,
   buildDailyInsight,
@@ -54,7 +55,7 @@ export const callAI = async (
         '[Groq Fatal Error] Check configuration or API key credentials.',
         error.message,
       );
-      throw error;
+      throw new AppError('AI service configuration error: ' + error.message);
     }
 
     // 4. Handle persistent connection or server exceptions
@@ -68,7 +69,7 @@ export const callAI = async (
     }
 
     console.error('[Groq Exhausted] All automatic and manual retries failed.');
-    throw error;
+    throw new AppError('AI service error: ' + error.message);
   }
 };
 
