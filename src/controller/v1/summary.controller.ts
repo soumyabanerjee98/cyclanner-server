@@ -4,22 +4,32 @@ import type { Request, Response } from 'express';
 export const getGoalSummary = async (
   req: Request & { user?: any },
   res: Response,
+  next: Function,
 ) => {
-  const userId = req.user.userId;
-  const date = new Date(req.query.date as string);
+  try {
+    const userId = req.user.userId;
+    const date = new Date(req.query.date as string);
 
-  const result = await summaryService.getGoalSummary(userId, date);
+    const result = await summaryService.getGoalSummary(userId, date);
 
-  return res.json(result);
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const getGoalSummaryInsight = async (
   req: Request & { user?: any },
   res: Response,
+  next: Function,
 ) => {
-  const summaryId = req.params.summaryId as string;
+  try {
+    const summaryId = req.params.summaryId as string;
 
-  const result = await summaryService.getAISummary(summaryId);
+    const result = await summaryService.getAISummary(summaryId);
 
-  return res.json(result);
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
 };

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma.js';
 import { updateTrainingState } from './strava.service.js';
 import { generateWeeklyAIInsight } from './ai.service.js';
+import AppError from '@/handler/error.handler.js';
 
 export const getGoalSummary = async (userId: string, date: Date) => {
   const queryDate = new Date(date);
@@ -26,7 +27,7 @@ export const getGoalSummary = async (userId: string, date: Date) => {
   });
 
   if (!goal) {
-    throw new Error('No completed weekly goal found');
+    throw new AppError('No completed weekly goal found', 404);
   }
 
   // 2. RETURN EXISTING SUMMARY
@@ -99,7 +100,7 @@ export const getAISummary = async (summaryId: string) => {
   });
 
   if (!summary) {
-    throw new Error('Weekly summary not found');
+    throw new AppError('Weekly summary not found', 404);
   }
 
   // 2. RETURN IF AI ALREADY EXISTS
@@ -118,7 +119,7 @@ export const getAISummary = async (summaryId: string) => {
   });
 
   if (ai.type !== 'json') {
-    throw new Error('AI failed to generate weekly summary');
+    throw new AppError('AI failed to generate weekly summary');
   }
 
   const data = ai.value as {
