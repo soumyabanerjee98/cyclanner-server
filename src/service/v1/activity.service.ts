@@ -7,7 +7,6 @@ import {
 import axios from 'axios';
 import { generateCoachInsights, generatePlanWithAI } from './ai.service.js';
 import { deriveTrainingState } from '@/utils/strava.util.js';
-import { th } from 'zod/locales';
 
 export const updateUserPhysiology = async (userId: string) => {
   // 1. Max HR from all activities

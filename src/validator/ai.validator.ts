@@ -17,9 +17,7 @@ export const coachInsightsSchema = z.object({
   insights: z.object({
     summary: z.string(),
     risk: z.enum(['low', 'medium', 'high']),
-    issues: z.array(z.string()),
     recommendations: z.array(z.string()),
-    adjustments: z.array(z.string()),
   }),
 });
 

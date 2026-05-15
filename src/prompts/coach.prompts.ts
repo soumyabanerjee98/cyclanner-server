@@ -212,10 +212,8 @@ COACHING REQUIREMENTS
 Provide:
 
 - concise summary
-- fatigue risk
-- training issues
+- fatigue risk assessment
 - actionable recommendations
-- performance optimization tips
 
 Recommendations must:
 - be specific
@@ -244,9 +242,7 @@ OUTPUT FORMAT
   "insights": {
     "summary": "",
     "risk": "low",
-    "issues": [],
     "recommendations": [],
-    "adjustments": []
   }
 }
 
@@ -258,9 +254,7 @@ TYPE REQUIREMENTS
   insights: {
     summary: string;
     risk: 'low' | 'medium' | 'high';
-    issues: string[];
     recommendations: string[];
-    adjustments: string[];
   }
 }
 
@@ -271,14 +265,8 @@ IMPORTANT
 - risk must be:
   low | medium | high
 
-- adjustments should contain:
-  specific plan-level improvements
-
 - recommendations should:
-  improve performance and recovery
-
-- issues should:
-  identify structural weaknesses
+  tips for adherence to the plan, adjustments to improve balance, progression, or recovery, and any red flags to watch for. Don't ask for plan changes, but suggest how to approach the plan for best results. For example, if the plan has a high fatigue risk, you might say "This plan has a high fatigue risk due to the consecutive hard sessions on Wednesday and Thursday. To manage this, I recommend prioritizing recovery strategies such as good sleep, nutrition, and possibly incorporating an extra rest day or light recovery session on Friday to help your body adapt and reduce fatigue levels."
 
 ========================
 FAILSAFE
