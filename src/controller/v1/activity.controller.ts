@@ -8,53 +8,71 @@ import {
 } from '@/service/v1/activity.service.js';
 import type { Request, Response } from 'express';
 
-export const getPlan = async (req: Request & { user?: any }, res: Response) => {
-  const userId = req.user.userId;
+export const getPlan = async (
+  req: Request & { user?: any },
+  res: Response,
+  next: Function,
+) => {
+  try {
+    const userId = req.user.userId;
 
-  const goal = req.body;
+    const goal = req.body;
 
-  const plan = await buildPlan(userId, goal);
+    const plan = await buildPlan(userId, goal);
 
-  return res.json(plan);
+    return res.json(plan);
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const getAIInsights = async (
   req: Request & { user?: any },
   res: Response,
+  next: Function,
 ) => {
-  const { retries, ...input } = req.body;
+  try {
+    const { retries, ...input } = req.body;
 
-  const insights = await getAICoachInsights(input, retries);
-  return res.json(insights);
+    const insights = await getAICoachInsights(input, retries);
+    return res.json(insights);
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const previewActivities = async (
   req: Request & { user?: any },
   res: Response,
+  next: Function,
 ) => {
-  const userId = req.user.userId;
+  try {
+    const userId = req.user.userId;
 
-  const { page: pageQuery, perPage: perPageQuery } = req.query;
-  const page = Array.isArray(pageQuery)
-    ? Number(pageQuery[0])
-    : typeof pageQuery === 'string'
-      ? Number(pageQuery)
-      : null;
-  const perPage = Array.isArray(perPageQuery)
-    ? Number(perPageQuery[0])
-    : typeof perPageQuery === 'string'
-      ? Number(perPageQuery)
-      : null;
+    const { page: pageQuery, perPage: perPageQuery } = req.query;
+    const page = Array.isArray(pageQuery)
+      ? Number(pageQuery[0])
+      : typeof pageQuery === 'string'
+        ? Number(pageQuery)
+        : null;
+    const perPage = Array.isArray(perPageQuery)
+      ? Number(perPageQuery[0])
+      : typeof perPageQuery === 'string'
+        ? Number(perPageQuery)
+        : null;
 
-  const plan = await fetchActivitiesPreview(userId, {
-    page,
-    perPage,
-  });
+    const plan = await fetchActivitiesPreview(userId, {
+      page,
+      perPage,
+    });
 
-  return res.json(plan);
+    return res.json(plan);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const getActivities = async (req: any, res: any) => {
+export const getActivities = async (req: any, res: any, next: Function) => {
   try {
     const userId = req.user.userId;
     const query = req.query;
@@ -70,29 +88,39 @@ export const getActivities = async (req: any, res: any) => {
     });
 
     return res.json(result);
-  } catch (error: any) {
-    return res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 };
 
 export const syncActivities = async (
   req: Request & { user?: any },
   res: Response,
+  next: Function,
 ) => {
-  const userId = req.user.userId;
+  try {
+    const userId = req.user.userId;
 
-  const { activityIds } = req.body;
-  const result = await syncSelectedActivities(userId, activityIds);
+    const { activityIds } = req.body;
+    const result = await syncSelectedActivities(userId, activityIds);
 
-  return res.json(result);
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const removeActivity = async (
   req: Request & { user?: any },
   res: Response,
+  next: Function,
 ) => {
-  const userId = req.user.userId;
-  const { activityId } = req.params;
-  const result = await deleteActivity(userId, activityId as string);
-  return res.json(result);
+  try {
+    const userId = req.user.userId;
+    const { activityId } = req.params;
+    const result = await deleteActivity(userId, activityId as string);
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
 };

@@ -7,6 +7,7 @@ import {
 import axios from 'axios';
 import { generateCoachInsights, generatePlanWithAI } from './ai.service.js';
 import { deriveTrainingState } from '@/utils/strava.util.js';
+import AppError from '@/handler/error.handler.js';
 
 export const updateUserPhysiology = async (userId: string) => {
   // 1. Max HR from all activities
@@ -30,7 +31,7 @@ export const updateUserPhysiology = async (userId: string) => {
   });
 
   if (!user) {
-    throw new Error('User not found');
+    throw new AppError('User not found', 404);
   }
 
   // 3. Auto resting HR only if missing
@@ -129,7 +130,7 @@ export const buildPlan = async (userId: string, goal: Goal) => {
   );
 
   if (aiGeneratedPlan.type === 'string')
-    throw new Error(
+    throw new AppError(
       'AI failed to generate a valid plan: ' + aiGeneratedPlan.value,
     );
   const plan = aiGeneratedPlan.value;
@@ -158,7 +159,7 @@ export const fetchActivitiesPreview = async (
     where: { userId, isActive: true },
   });
 
-  if (!token) throw new Error('Strava not connected');
+  if (!token) throw new AppError('Strava not connected', 400);
 
   const valid = await getValidAccessToken(token);
 
@@ -273,7 +274,7 @@ export const deleteActivity = async (userId: string, activityId: string) => {
   });
 
   if (!activity) {
-    throw new Error('Activity not found');
+    throw new AppError('Activity not found', 404);
   }
 
   const deletedActivity = await prisma.activity.delete({
