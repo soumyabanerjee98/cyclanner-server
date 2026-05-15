@@ -1,13 +1,13 @@
 import {
-  buildAdjustmentPrompt,
   buildCoachingPrompt,
   buildDailyInsight,
+  buildPlanPrompt,
   buildWeeklyInsight,
 } from '@/prompts/coach.prompts.js';
 import {
-  adjustedPlanSchema,
   coachInsightsSchema,
   dailyInsightsSchema,
+  generatedPlanSchema,
   weeklyInsightsSchema,
 } from '@/validator/ai.validator.js';
 import 'dotenv/config';
@@ -28,6 +28,64 @@ export const callAI = async (
   });
 
   return completion.choices[0]?.message?.content || '';
+};
+
+export const generatePlanWithAI = async (
+  input: {
+    currentLoad: number;
+    fatigue: number;
+    fitness: number;
+    readiness: number;
+
+    startDate: Date;
+    endDate: Date;
+
+    experienceLevel: string;
+    customGoalRequest: string;
+  },
+  maxRetries: number = 3,
+) => {
+  const prompt = buildPlanPrompt(input);
+
+  let retries = 0;
+  let raw = '';
+
+  do {
+    try {
+      raw = await callAI(
+        [
+          {
+            role: 'system',
+            content:
+              'You are an elite cycling coach specializing in endurance training and structured progression.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        0.4,
+      );
+
+      const parsed = JSON.parse(raw);
+
+      const validated = generatedPlanSchema.safeParse(parsed);
+
+      if (validated.success) {
+        console.log('AI Generate Plan successful: ', validated.data);
+        return { type: 'json', value: validated.data };
+      }
+      console.warn(
+        `AI Generate Plan parse failed, retrying... (${retries + 1})`,
+      );
+      retries++;
+    } catch (error) {
+      console.warn(`AI Generate Plan error attempt ${retries + 1}`, error);
+      retries++;
+    }
+  } while (retries < maxRetries);
+  console.log('AI Generate Plan failed!.');
+  return { type: 'string', value: raw };
 };
 
 export const generateCoachInsights = async (
@@ -74,48 +132,6 @@ export const generateCoachInsights = async (
     }
   } while (retries < maxRetries);
   console.log('AI Generate Coach Insights failed!.');
-  return { type: 'string', value: raw };
-};
-
-export const adjustPlanWithAI = async (
-  input: CoachInput,
-  maxRetries: number = 0,
-) => {
-  const prompt = buildAdjustmentPrompt(input);
-  let retries = 0;
-  let raw = '';
-  do {
-    try {
-      raw = await callAI(
-        [
-          {
-            role: 'system',
-            content:
-              'You are an expert cycling coach who modifies training plans safely.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        0.4,
-      );
-
-      const parsed = JSON.parse(raw);
-
-      const validated = adjustedPlanSchema.safeParse(parsed);
-      if (validated.success) {
-        console.log('AI Adjust Plan successful: ', validated.data);
-        return { type: 'json', value: validated.data };
-      }
-      console.warn(`AI Adjust Plan parse failed, retrying... (${retries + 1})`);
-      retries++;
-    } catch (error) {
-      console.warn(`AI Adjust Plan error attempt ${retries + 1}`, error);
-      retries++;
-    }
-  } while (retries < maxRetries);
-  console.log('AI Adjust Plan failed!.');
   return { type: 'string', value: raw };
 };
 

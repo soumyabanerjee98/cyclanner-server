@@ -1,76 +1,233 @@
-export const buildCoachingPrompt = (input: CoachInput) => {
-  return `
-You are an expert cycling coach.
+export const buildPlanPrompt = (input: {
+  currentLoad: number;
+  fatigue: number;
+  fitness: number;
+  readiness: number;
 
-Your job is to analyze a user's training data and return STRICT MACHINE-READABLE JSON.
+  startDate: Date;
+  endDate: Date;
+
+  experienceLevel: string;
+  customGoalRequest: string;
+}) => {
+  return `
+You are an elite cycling coach.
+
+Your task is to generate a structured cycling training plan.
 
 ========================
-USER DATA
+ATHLETE DATA
 ========================
 
 Current Load: ${input.currentLoad}
+Fatigue (ATL): ${input.fatigue}
+Fitness (CTL): ${input.fitness}
+Readiness (TSB): ${input.readiness}
+
+Experience Level:
+${input.experienceLevel}
+
+Training Period:
+${input.startDate.toISOString()} to ${input.endDate.toISOString()}
+
+Custom Goal Request:
+${input.customGoalRequest}
+
+========================
+PLAN REQUIREMENTS
+========================
+
+Generate a realistic cycling training plan.
+
+Requirements:
+
+- Include rest days
+- Include recovery sessions
+- Balance endurance and intensity
+- Progressively overload training
+- Avoid overtraining
+- Match athlete readiness and fatigue
+- Structure should match athlete level
+
+Allowed session types:
+- rest
+- recovery
+- endurance
+- easy
+- tempo
+- threshold
+- VO2
+- sprint
+- long
+
+========================
+OUTPUT RULES
+========================
+
+1. Output MUST be valid raw JSON only
+2. No markdown
+3. No explanations
+4. ASCII characters only
+5. No smart quotes
+6. No unicode symbols
+7. Do NOT stringify JSON
+8. Return ONLY JSON object
+
+========================
+OUTPUT FORMAT
+========================
+
+{
+  "currentLoad": 0,
+  "targetLoad": 0,
+  "adjustedLoad": 0,
+
+  "fatigue": 0,
+  "fitness": 0,
+  "readiness": 0,
+
+  "plan": [
+    {
+      "date": "2026-05-15",
+      "type": "endurance",
+      "title": "Aerobic Base Ride",
+      "description": "Steady endurance ride",
+
+      "targetLoad": 75,
+
+      "targetDistance": 40,
+      "targetDuration": 90,
+
+      "instructions": "Maintain conversational pace"
+    }
+  ]
+}
+
+========================
+IMPORTANT
+========================
+
+- targetLoad = planned block load
+- adjustedLoad = fatigue-adjusted target load
+- fatigue = ATL
+- fitness = CTL
+- readiness = TSB
+
+Ensure:
+- progression is realistic
+- no excessive overload
+- enough recovery exists
+- sessions align with stated goals
+`;
+};
+
+export const buildCoachingPrompt = (input: CoachInput) => {
+  return `
+You are an elite cycling performance coach.
+
+Your task is to analyze a cycling training plan and athlete condition.
+
+You MUST return STRICT MACHINE-READABLE JSON ONLY.
+
+========================
+ATHLETE METRICS
+========================
+
+Current Load: ${input.currentLoad}
+
 Target Load: ${input.targetLoad}
-Fatigue Score: ${input.fatigue}
 
-Goal:
-${JSON.stringify(input.goal)}
+Adjusted Load: ${input.adjustedLoad}
 
-Weekly Plan:
+Fatigue (ATL): ${input.fatigue}
+
+Fitness (CTL): ${input.fitness}
+
+Readiness (TSB): ${input.readiness}
+
+========================
+TRAINING PLAN
+========================
+
 ${input.plan
-  .map((d) => `${d.day}: ${d.type} session with load ${d.load}`)
+  .map(
+    (d) => `
+Date: ${d.date}
+Type: ${d.type}
+Title: ${d.title}
+Description: ${d.description}
+Target Load: ${d.targetLoad}
+Target Distance: ${d.targetDistance || 0}
+Target Duration: ${d.targetDuration || 0}
+Instructions: ${d.instructions}
+`,
+  )
   .join('\n')}
 
 ========================
-CRITICAL OUTPUT RULES (MUST FOLLOW)
+ANALYSIS REQUIREMENTS
 ========================
 
-You MUST follow ALL rules below:
+Analyze the plan for:
 
-1. Output MUST be valid JSON (RFC 8259 compliant)
-2. Output MUST NOT include any extra text, explanation, or markdown
-3. Output MUST NOT include:
-   - smart quotes (“ ” ‘ ’)
-   - unicode symbols (≈, –, —, ×, ±, ->)
-   - non-breaking spaces
-   - ranges like "104–105" (must be "104-105")
-4. Use ONLY ASCII characters (0-9, a-z, punctuation)
-5. All numbers must be plain numeric values (no formatting symbols)
-6. Do NOT include commentary or reasoning
+1. Recovery balance
+2. Fatigue management
+3. Progression quality
+4. Endurance/intensity balance
+5. Risk of overtraining
+6. Realism for athlete readiness
+7. Session distribution quality
+8. Sustainability of training block
 
 ========================
-ANALYSIS RULES
+COACHING REQUIREMENTS
 ========================
 
-1. Detect:
-   - overtraining
-   - undertraining
-   - imbalance (hard vs easy vs recovery)
+Provide:
 
-2. Evaluate fatigue vs target load
+- concise summary
+- fatigue risk
+- training issues
+- actionable recommendations
+- performance optimization tips
 
-3. Provide ONLY actionable training adjustments
-
-4. Avoid generic advice
+Recommendations must:
+- be specific
+- reference actual plan structure
+- avoid generic advice
 
 ========================
-OUTPUT FORMAT (STRICT JSON - NO DEVIATIONS)
+OUTPUT RULES (MANDATORY)
 ========================
 
-Return ONLY this JSON:
+1. Output MUST be valid raw JSON only
+2. No markdown
+3. No explanation
+4. ASCII characters only
+5. No unicode symbols
+6. No smart quotes
+7. Do NOT stringify JSON
+8. Do NOT wrap JSON in quotes
+9. No commentary outside JSON
+
+========================
+OUTPUT FORMAT
+========================
 
 {
   "insights": {
-    {
-      "summary": "",
-      "risk": "low" | "medium" | "high",
-      "issues": [],
-      "recommendations": [],
-      "adjustments": []
-    }
+    "summary": "",
+    "risk": "low",
+    "issues": [],
+    "recommendations": [],
+    "adjustments": []
   }
 }
 
-  of type
+========================
+TYPE REQUIREMENTS
+========================
+
 {
   insights: {
     summary: string;
@@ -81,110 +238,30 @@ Return ONLY this JSON:
   }
 }
 
-Return ONLY raw JSON object.
-NO space inside object.
-STRICTLY REMOVE all backslashes.
-Do NOT wrap output in quotes.
-Do NOT stringify JSON.
-
 ========================
-HARD CONSTRAINT (IMPORTANT)
+IMPORTANT
 ========================
 
-If you cannot comply with the rules, output valid JSON anyway.
-Never break JSON format under any condition.
-`;
-};
+- risk must be:
+  low | medium | high
 
-export const buildAdjustmentPrompt = (input: CoachInput) => {
-  return `
-You are an expert cycling coach.
+- adjustments should contain:
+  specific plan-level improvements
 
-You modify weekly training plans based on fatigue and load.
+- recommendations should:
+  improve performance and recovery
 
-========================
-USER DATA
-========================
-
-Current Load: ${input.currentLoad}
-Target Load: ${input.targetLoad}
-Fatigue: ${input.fatigue}
-Fitness: ${input.fitness}
-Readiness: ${input.readiness}
-
-Goal:
-${JSON.stringify(input.goal)}
-
-Weekly Plan:
-${JSON.stringify(input.plan)}
+- issues should:
+  identify structural weaknesses
 
 ========================
-CRITICAL OUTPUT RULES (MANDATORY)
-========================
-
-You MUST obey ALL rules:
-
-1. Output MUST be valid JSON only (no markdown, no explanation)
-2. Output MUST contain ONLY ASCII characters
-3. NEVER use:
-   - smart quotes (“ ” ‘ ’)
-   - unicode symbols (≈, –, —, ±, ×, ->)
-   - non-breaking spaces
-4. NEVER output ranges like "104–105"
-   → ALWAYS use "104-105"
-5. ALL numbers must be plain integers or decimals
-6. DO NOT add commentary or text outside JSON
-7. DO NOT change number of days in plan
-8. DO NOT remove rest days
-9. DO NOT add new days
-
-========================
-TRAINING RULES
-========================
-
-- Adjust loads only within ±10-20%
-- If fatigue is HIGH → reduce overall load
-- If undertraining → increase load slightly
-- Keep structure realistic:
-  rest / easy / hard / long / recovery
-- Preserve training balance
-
-========================
-OUTPUT FORMAT (STRICT JSON ONLY)
-========================
-
-Return ONLY this JSON:
-
-{
-  "adjustedPlan": [
-    {
-      "day": "",
-      "type": "",
-      "load": 0
-    }
-  ]
-}
-  of type
-{
-  adjustedPlan: {
-    day: string;
-    type: string;
-    load: number;
-  }[];
-}
-
-Return ONLY raw JSON object.
-Do NOT wrap output in quotes.
-Do NOT stringify JSON.
-
-========================
-HARD GUARANTEE
+FAILSAFE
 ========================
 
 If constraints conflict:
-- prioritize JSON validity first
-- then training logic
-- never break format under any condition
+- prioritize valid JSON first
+- never break JSON format
+- never output markdown
 `;
 };
 

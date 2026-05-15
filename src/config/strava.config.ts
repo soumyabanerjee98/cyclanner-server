@@ -22,12 +22,6 @@ export const progressionRate = {
   advanced: 0.1, // 10%
 };
 
-export const experienceMultiplier = {
-  beginner: 0.8,
-  intermediate: 1,
-  advanced: 1.2,
-};
-
 const ATL_DAYS = 7;
 const CTL_DAYS = 42;
 

@@ -3,7 +3,6 @@ import { validate } from '@/middleware/validate.middleware.js';
 import {
   activityQuerySchema,
   deleteActivityQuerySchema,
-  getAIAdjustmentSchema,
   getAIInsightsSchema,
   goalSchema,
   previewActivitiesQuerySchema,
@@ -14,21 +13,15 @@ import { Router } from 'express';
 const router = Router();
 
 router.post(
-  '/get-weekly-plan',
+  '/get-plan',
   validate({ body: goalSchema }),
-  activityController.getWeeklyPlan,
+  activityController.getPlan,
 );
 
 router.post(
   '/get-ai-insights',
   validate({ body: getAIInsightsSchema }),
   activityController.getAIInsights,
-);
-
-router.post(
-  '/get-ai-adjustment',
-  validate({ body: getAIAdjustmentSchema }),
-  activityController.getAIAdjustment,
 );
 
 router.get(

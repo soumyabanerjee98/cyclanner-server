@@ -1,23 +1,30 @@
 import { z } from 'zod';
 
 export const goalSchema = z.object({
-  type: z.enum(['distance', 'event']),
-  targetDistance: z.number().optional(),
-  eventDate: z.string().optional(),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
   experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']),
+  customGoalRequirements: z.string().optional(),
 });
 
-export const getAIInsightsSchema = z
-  .object({
-    retries: z.number().optional(),
-  })
-  .merge(goalSchema);
-
-export const getAIAdjustmentSchema = z
-  .object({
-    retries: z.number().optional(),
-  })
-  .merge(goalSchema);
+export const getAIInsightsSchema = z.object({
+  currentLoad: z.number().nonnegative(),
+  targetLoad: z.number().nonnegative(),
+  adjustedLoad: z.number().nonnegative(),
+  fatigue: z.number().nonnegative(),
+  fitness: z.number().nonnegative(),
+  readiness: z.number().nonnegative(),
+  plan: z.array(
+    z.object({
+      date: z.string(),
+      type: z.string(),
+      targetLoad: z.number().nonnegative(),
+      targetDistance: z.number().nonnegative(),
+      targetDuration: z.number().nonnegative(),
+    }),
+  ),
+  retries: z.number().optional(),
+});
 
 export const syncActivitiesSchema = z.object({
   activityIds: z.array(z.number()),

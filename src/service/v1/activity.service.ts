@@ -1,19 +1,11 @@
 import { prisma } from '@/lib/prisma.js';
 import {
-  adjustForFatigue,
-  estimateLoadFromDistance,
-  generateWeeklyPlan,
-  getTargetWeeklyLoad,
-  getWeeksRemaining,
-} from '@/utils/strava.util.js';
-import {
   getValidAccessToken,
   syncActivity,
   updateTrainingState,
 } from './strava.service.js';
 import axios from 'axios';
-import { experienceMultiplier } from '@/config/strava.config.js';
-import { adjustPlanWithAI, generateCoachInsights } from './ai.service.js';
+import { generateCoachInsights, generatePlanWithAI } from './ai.service.js';
 
 export const updateUserPhysiology = async (userId: string) => {
   // 1. Max HR from all activities
@@ -100,77 +92,34 @@ export const getWeeklyStats = async (userId: string) => {
   return stats;
 };
 
-export const buildWeeklyPlan = async (userId: string, goal: Goal) => {
+export const buildPlan = async (userId: string, goal: Goal) => {
   const stats = await getWeeklyStats(userId);
   const { atl, ctl, tsb } = await updateTrainingState(userId, new Date());
 
-  let targetLoad;
+  const aiGeneratedPlan = await generatePlanWithAI(
+    {
+      currentLoad: stats.totalLoad,
+      fatigue: atl,
+      fitness: ctl,
+      readiness: tsb,
 
-  if (goal.type === 'distance' && goal.targetDistance) {
-    targetLoad = estimateLoadFromDistance(goal.targetDistance);
-  } else if (goal.type === 'event' && goal.eventDate) {
-    const weeks = getWeeksRemaining(goal.eventDate);
-    const targetEventLoad = stats.totalLoad * 1.5;
+      startDate: goal.startDate,
+      endDate: goal.endDate,
+      experienceLevel: goal.experienceLevel,
+      customGoalRequest: goal.customGoalRequirements,
+    },
+    3,
+  );
 
-    const increment = (targetEventLoad - stats.totalLoad) / weeks;
-    targetLoad = stats.totalLoad + increment;
-  } else {
-    targetLoad = getTargetWeeklyLoad(stats.totalLoad, goal.experienceLevel);
-  }
-
-  targetLoad *= experienceMultiplier[goal.experienceLevel];
-
-  const adjustedLoad = adjustForFatigue(targetLoad, tsb);
-
-  const plan = generateWeeklyPlan(adjustedLoad);
-
-  return {
-    currentLoad: stats.totalLoad,
-    targetLoad,
-    adjustedLoad,
-    fatigue: atl,
-    fitness: ctl,
-    readiness: tsb,
-    plan,
-  };
+  return aiGeneratedPlan;
 };
 
 export const getAICoachInsights = async (
-  userId: string,
-  goal: Goal,
+  coachInput: CoachInput,
   maxRetries: number = 0,
 ) => {
-  const planData = await buildWeeklyPlan(userId, goal);
-  const input: CoachInput = {
-    currentLoad: planData.currentLoad,
-    targetLoad: planData.targetLoad,
-    fatigue: planData.fatigue,
-    fitness: planData.fitness,
-    readiness: planData.readiness,
-    plan: planData.plan,
-    goal,
-  };
-  const insights = await generateCoachInsights(input, maxRetries);
+  const insights = await generateCoachInsights(coachInput, maxRetries);
   return insights;
-};
-
-export const getAIPlanAdjustment = async (
-  userId: string,
-  goal: Goal,
-  maxRetries: number = 0,
-) => {
-  const planData = await buildWeeklyPlan(userId, goal);
-  const input: CoachInput = {
-    currentLoad: planData.currentLoad,
-    targetLoad: planData.targetLoad,
-    fatigue: planData.fatigue,
-    fitness: planData.fitness,
-    readiness: planData.readiness,
-    plan: planData.plan,
-    goal,
-  };
-  const adjustments = await adjustPlanWithAI(input, maxRetries);
-  return adjustments;
 };
 
 export const fetchActivitiesPreview = async (

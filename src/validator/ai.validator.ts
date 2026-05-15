@@ -1,11 +1,22 @@
-import { positive, z } from 'zod';
+import { z } from 'zod';
 
-export const adjustedPlanSchema = z.object({
-  adjustedPlan: z.array(
+export const generatedPlanSchema = z.object({
+  currentLoad: z.number().nonnegative(),
+  targetLoad: z.number().nonnegative(),
+  adjustedLoad: z.number().nonnegative(),
+  fatigue: z.number().nonnegative(),
+  fitness: z.number().nonnegative(),
+  readiness: z.number().nonnegative(),
+  plan: z.array(
     z.object({
-      day: z.string(),
+      date: z.string(),
       type: z.string(),
-      load: z.number(),
+      title: z.string(),
+      description: z.string(),
+      targetLoad: z.number().nonnegative(),
+      targetDistance: z.number().nonnegative(),
+      targetDuration: z.number().nonnegative(),
+      instructions: z.string(),
     }),
   ),
 });

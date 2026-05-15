@@ -123,26 +123,40 @@ type StravaActivity = {
 };
 
 type Goal = {
-  type: 'distance' | 'event';
-  targetDistance?: number; // e.g. 200km/week
-  eventDate?: Date;
+  startDate: Date;
+  endDate: Date;
   experienceLevel: 'beginner' | 'intermediate' | 'advanced';
+  customGoalRequirements: string; // free text for user to specify any specific requirements or constraints
 };
 
 type Plan = {
-  day: string;
-  type: 'rest' | 'hard' | 'easy' | 'long' | 'recovery';
-  load: number;
+  date: string;
+  type:
+    | 'rest'
+    | 'recovery'
+    | 'endurance'
+    | 'easy'
+    | 'tempo'
+    | 'threshold'
+    | 'VO2'
+    | 'sprint'
+    | 'long';
+  title: string;
+  description: string;
+  targetLoad: number;
+  targetDistance: number;
+  targetDuration: number;
+  instructions: string;
 };
 
 type CoachInput = {
   currentLoad: number;
   targetLoad: number;
+  adjustedLoad: number;
   fatigue: number;
   fitness: number;
   readiness: number;
   plan: Plan[];
-  goal: Goal;
 };
 
 type WeeklyAIInsight = {
