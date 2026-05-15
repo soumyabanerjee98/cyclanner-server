@@ -6,7 +6,7 @@ import { Router } from 'express';
 const router = Router();
 
 router.get(
-  '/get-insight',
+  '/get-daily-insight',
   validate({ query: getDailyInsightsQuerySchema }),
   insightController.createDailyInsight,
 );

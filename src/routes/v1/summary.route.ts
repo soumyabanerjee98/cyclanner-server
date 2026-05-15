@@ -15,7 +15,7 @@ router.get(
 );
 
 router.get(
-  '/get-ai-insight/:summaryId',
+  '/get-summary-insight/:summaryId',
   validate({ params: getGoalSummaryInsightParamsSchema }),
   summaryController.getGoalSummaryInsight,
 );
