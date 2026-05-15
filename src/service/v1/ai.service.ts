@@ -1,3 +1,4 @@
+import AppError from '@/handler/error.handler.js';
 import {
   buildCoachingPrompt,
   buildDailyInsight,
@@ -15,19 +16,61 @@ import Groq from 'groq-sdk';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
+  maxRetries: 3,
 });
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const callAI = async (
   messages: { role: 'system' | 'user'; content: string }[],
   temperature: number,
-) => {
-  const completion = await groq.chat.completions.create({
-    model: process.env.GROQ_AI_MODEL!,
-    messages,
-    temperature,
-  });
+  maxRetries = 3, // Fallback safety layer for extreme limits
+  attempt = 1,
+): Promise<string> => {
+  try {
+    const completion = await groq.chat.completions.create({
+      model: process.env.GROQ_AI_MODEL!,
+      messages,
+      temperature,
+    });
 
-  return completion.choices[0]?.message?.content || '';
+    return completion.choices[0]?.message?.content || '';
+  } catch (error: any) {
+    if (error.status === 429 && attempt <= maxRetries) {
+      // Check if Groq sent an exact 'retry-after' time constraint (in seconds)
+      const retryAfterHeader = error.headers?.['retry-after'];
+      const waitTimeSec = retryAfterHeader
+        ? parseFloat(retryAfterHeader)
+        : Math.pow(2, attempt);
+
+      console.warn(
+        `[Groq Rate Limit] Hit 429. Retrying attempt ${attempt}/${maxRetries} after ${waitTimeSec}s...`,
+      );
+
+      await delay(waitTimeSec * 1000);
+      return callAI(messages, temperature, maxRetries, attempt + 1);
+    }
+    if (error.status === 401 || error.status === 400) {
+      console.error(
+        '[Groq Fatal Error] Check configuration or API key credentials.',
+        error.message,
+      );
+      throw new AppError('AI service configuration error: ' + error.message);
+    }
+
+    // 4. Handle persistent connection or server exceptions
+    if (attempt <= maxRetries) {
+      const fallbackWait = Math.pow(2, attempt);
+      console.warn(
+        `[Groq Error] Status ${error.status || 'unknown'}. Retrying in ${fallbackWait}s...`,
+      );
+      await delay(fallbackWait * 1000);
+      return callAI(messages, temperature, maxRetries, attempt + 1);
+    }
+
+    console.error('[Groq Exhausted] All automatic and manual retries failed.');
+    throw new AppError('AI service error: ' + error.message);
+  }
 };
 
 export const generatePlanWithAI = async (

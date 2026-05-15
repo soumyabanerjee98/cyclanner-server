@@ -7,6 +7,7 @@ import {
 import axios from 'axios';
 import 'dotenv/config';
 import { updateUserPhysiology } from './activity.service.js';
+import AppError from '@/handler/error.handler.js';
 
 export const fetchStravaActivity = async (
   activityId: number,
@@ -306,7 +307,10 @@ export const stravaCallback = async ({
   });
 
   if (existingAthlete) {
-    throw new Error('This Strava account is already linked to another user.');
+    throw new AppError(
+      'This Strava account is already linked to another user.',
+      400,
+    );
   }
 
   if (newConnection) {
@@ -362,7 +366,7 @@ export const processWebhookEvent = async (event: StravaEvent) => {
 
   const { aspect_type, object_type, object_id, owner_id } = event;
 
-  if (object_type !== 'activity') throw Error('Not an activity!');
+  if (object_type !== 'activity') throw new AppError('Not an activity!', 400);
 
   switch (aspect_type) {
     case 'create':
@@ -380,7 +384,7 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
   });
 
   if (!token) {
-    throw Error('No token found for athlete: ' + athleteId);
+    throw new AppError('No token found for athlete: ' + athleteId, 404);
   }
 
   token = await getValidAccessToken(token);
@@ -484,7 +488,7 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
       return await executeSync(token.accessToken);
     }
 
-    throw Error('Sync error: ' + error.message);
+    throw new AppError('Sync error: ' + error.message);
   }
 };
 

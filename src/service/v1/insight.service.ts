@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma.js';
 import { generateDailyInsights } from './ai.service.js';
 import { updateTrainingState } from './strava.service.js';
+import AppError from '@/handler/error.handler.js';
 
 export const getDailyInsights = async (userId: string, date: Date) => {
   const start = new Date(date);
@@ -33,7 +34,7 @@ export const getDailyInsights = async (userId: string, date: Date) => {
   });
 
   if (activities.length === 0) {
-    throw new Error('No activities found for this date');
+    throw new AppError('No activities found for this date', 404);
   }
 
   const totalActualLoad = activities.reduce(
@@ -66,7 +67,7 @@ export const getDailyInsights = async (userId: string, date: Date) => {
   });
 
   if (!goal) {
-    throw new Error('No active goal found');
+    throw new AppError('No active goal found', 404);
   }
 
   // 3. Get correct plan for day
