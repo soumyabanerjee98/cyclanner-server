@@ -4,11 +4,16 @@ import type { Request, Response } from 'express';
 export const createDailyInsight = async (
   req: Request & { user?: any },
   res: Response,
+  next: Function,
 ) => {
-  const userId = req.user.userId;
-  const date = new Date(req.query.date as string);
+  try {
+    const userId = req.user.userId;
+    const date = new Date(req.query.date as string);
 
-  const result = await insightService.getDailyInsights(userId, date);
+    const result = await insightService.getDailyInsights(userId, date);
 
-  return res.json(result);
+    return res.json(result);
+  } catch (error) {
+    next(error);
+  }
 };
