@@ -10,7 +10,7 @@ export const activityWorker = new Worker(
       case 'sync-activity': {
         const { activityId, athleteId } = job.data;
 
-        return await syncActivity(activityId, athleteId);
+        return await syncActivity(parseInt(activityId), parseInt(athleteId));
       }
 
       default:

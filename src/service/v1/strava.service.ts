@@ -511,8 +511,8 @@ export const processWebhookEvent = async (event: StravaEvent) => {
     case 'create':
     case 'update':
       return await activityQueue.add('sync-activity', {
-        activityId: object_id,
-        athleteId: owner_id,
+        activityId: object_id.toString(),
+        athleteId: owner_id.toString(),
       });
 
     case 'delete':

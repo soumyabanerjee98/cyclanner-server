@@ -257,8 +257,8 @@ export const syncSelectedActivities = async (
   let activityIdsToSync: number[] = [];
   for (const id of activityIds) {
     await activityQueue.add('sync-activity', {
-      activityId: id,
-      athleteId: valid.athleteId,
+      activityId: id.toString(),
+      athleteId: valid.athleteId.toString(),
     });
     activityIdsToSync.push(id);
   }
