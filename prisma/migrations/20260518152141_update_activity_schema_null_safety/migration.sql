@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Activity" ALTER COLUMN "avgWatts" DROP NOT NULL,
+ALTER COLUMN "calories" DROP NOT NULL;

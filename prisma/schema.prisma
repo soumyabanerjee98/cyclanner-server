@@ -59,7 +59,6 @@ model Activity {
   user   User   @relation(fields: [userId], references: [id])
 
   name String?
-  type String?
 
   distance    Float // meters
   movingTime  Int // seconds
@@ -68,8 +67,18 @@ model Activity {
   avgHR Int?
   maxHR Int?
 
-  zone         String? // z1, z2, z3, z4, z5
-  trainingLoad Float? // computed metric
+  avgSpeed Float // mps
+  maxSpeed Float // mps
+
+  calories Int?
+
+  avgWatts   Float?
+  kilojoules Float
+
+  zone                 String? // z1, z2, z3, z4, z5
+  trainingLoad         Float? // computed metric
+  trainingLoadSource   String // ActivityMetricSource enums
+  trainingLoadAccuracy String // ActivityMetricAccuracy enums
 
   elevationGain Float?
 

@@ -8,6 +8,10 @@ import axios from 'axios';
 import 'dotenv/config';
 import { updateUserPhysiology } from './activity.service.js';
 import AppError from '@/handler/error.handler.js';
+import {
+  ActivityMetricAccuracy,
+  ActivityMetricSource,
+} from '@/enums/strava.enums.js';
 
 export const fetchStravaActivity = async (
   activityId: number,
@@ -28,62 +32,196 @@ export const fetchStravaActivity = async (
 export const computeActivityMetrics = (
   activity: StravaActivity,
   userMaxHr: number | null,
-) => {
+): {
+  zone: string | null;
+  trainingLoad: number | null;
+  source: string;
+  accuracy: string;
+} => {
   let zone: string | null = null;
   let trainingLoad: number | null = null;
 
-  const durationMin = activity.moving_time ? activity.moving_time / 60 : 0;
+  const durationHours = activity.moving_time ? activity.moving_time / 3600 : 0;
 
-  //  1. HR (best)
+  const durationMinutes = activity.moving_time ? activity.moving_time / 60 : 0;
+
+  /**
+   * =========================================================
+   * 1. HEART RATE BASED (BEST)
+   * =========================================================
+   */
+
   const maxHr = userMaxHr ?? activity.max_heartrate;
 
-  if (activity.average_heartrate && maxHr !== undefined) {
+  if (activity.average_heartrate && maxHr && durationMinutes > 0) {
     zone = classifyIntensity(activity.average_heartrate, maxHr);
 
     trainingLoad = calculateTrainingLoad(activity.moving_time, zone);
 
-    return { zone, trainingLoad, source: 'hr' };
+    return {
+      zone,
+      trainingLoad: Math.round(trainingLoad),
+
+      source: ActivityMetricSource.HEART_RATE,
+      accuracy: ActivityMetricAccuracy.EXCELLENT,
+    };
   }
 
-  //  2. Suffer score (FIXED)
-  if (activity.suffer_score && durationMin > 0) {
-    const intensityPerMin = activity.suffer_score / durationMin;
+  /**
+   * =========================================================
+   * 2. POWER BASED
+   * =========================================================
+   */
 
-    if (intensityPerMin < 0.5) zone = 'z1';
-    else if (intensityPerMin < 1.5) zone = 'z2';
-    else if (intensityPerMin < 2.5) zone = 'z3';
-    else if (intensityPerMin < 4) zone = 'z4';
+  if (activity.average_watts && durationHours > 0) {
+    const watts = activity.average_watts;
+
+    const powerScore = (watts / 200) * durationHours * 45;
+
+    trainingLoad = powerScore;
+
+    if (watts < 140) zone = 'z1';
+    else if (watts < 180) zone = 'z2';
+    else if (watts < 220) zone = 'z3';
+    else if (watts < 280) zone = 'z4';
     else zone = 'z5';
 
-    trainingLoad = calculateTrainingLoad(activity.moving_time, zone);
+    return {
+      zone,
+      trainingLoad: Math.round(trainingLoad),
 
-    return { zone, trainingLoad, source: 'suffer_score' };
+      source: ActivityMetricSource.POWER,
+      accuracy: ActivityMetricAccuracy.HIGH,
+    };
   }
 
-  //  3. Speed fallback
+  /**
+   * =========================================================
+   * 3. KILOJOULES BASED
+   * =========================================================
+   */
+
+  if (activity.kilojoules && durationHours > 0) {
+    const kjScore = activity.kilojoules / 18;
+
+    trainingLoad = kjScore;
+
+    if (kjScore < 20) zone = 'z1';
+    else if (kjScore < 40) zone = 'z2';
+    else if (kjScore < 60) zone = 'z3';
+    else if (kjScore < 85) zone = 'z4';
+    else zone = 'z5';
+
+    return {
+      zone,
+      trainingLoad: Math.round(trainingLoad),
+
+      source: ActivityMetricSource.KILOJOULES,
+      accuracy: ActivityMetricAccuracy.MEDIUM,
+    };
+  }
+
+  /**
+   * =========================================================
+   * 4. CALORIE BASED
+   * =========================================================
+   */
+
+  if (activity.calories && durationHours > 0) {
+    const calorieScore = activity.calories / 12;
+
+    trainingLoad = calorieScore;
+
+    if (calorieScore < 20) zone = 'z1';
+    else if (calorieScore < 40) zone = 'z2';
+    else if (calorieScore < 60) zone = 'z3';
+    else if (calorieScore < 85) zone = 'z4';
+    else zone = 'z5';
+
+    return {
+      zone,
+      trainingLoad: Math.round(trainingLoad),
+
+      source: ActivityMetricSource.CALORIES,
+      accuracy: ActivityMetricAccuracy.MEDIUM,
+    };
+  }
+
+  /**
+   * =========================================================
+   * 5. COMPOSITE SPEED + ELEVATION MODEL
+   * =========================================================
+   */
+
   if (activity.average_speed && activity.moving_time) {
-    const speed = activity.average_speed;
+    const avgSpeed = activity.average_speed * 3.6; // mps to kph
 
-    if (speed < 4) zone = 'z1';
-    else if (speed < 6) zone = 'z2';
-    else if (speed < 8) zone = 'z3';
-    else if (speed < 10) zone = 'z4';
+    const maxSpeed = (activity.max_speed || 0) * 3.6; // mps to kph
+
+    const elevationGain = activity.total_elevation_gain || 0;
+
+    const speedScore = avgSpeed * 1.8;
+
+    const maxSpeedScore = maxSpeed * 0.3;
+
+    const elevationScore = elevationGain / 120;
+
+    const durationScore = durationHours * 12;
+
+    trainingLoad = speedScore + maxSpeedScore + elevationScore + durationScore;
+
+    if (trainingLoad < 20) zone = 'z1';
+    else if (trainingLoad < 40) zone = 'z2';
+    else if (trainingLoad < 60) zone = 'z3';
+    else if (trainingLoad < 85) zone = 'z4';
     else zone = 'z5';
 
-    trainingLoad = calculateTrainingLoad(activity.moving_time, zone);
+    trainingLoad = Math.max(5, Math.min(trainingLoad, 150));
 
-    return { zone, trainingLoad, source: 'speed' };
+    return {
+      zone,
+      trainingLoad: Math.round(trainingLoad),
+
+      source: ActivityMetricSource.COMPOSITE,
+      accuracy: ActivityMetricAccuracy.LOW,
+    };
   }
 
-  //  4. Time fallback
+  /**
+   * =========================================================
+   * 6. DURATION FALLBACK
+   * =========================================================
+   */
+
   if (activity.moving_time) {
     zone = 'z2';
-    trainingLoad = calculateTrainingLoad(activity.moving_time, zone);
 
-    return { zone, trainingLoad, source: 'time' };
+    trainingLoad = durationHours * 18;
+
+    trainingLoad = Math.max(5, Math.min(trainingLoad, 60));
+
+    return {
+      zone,
+      trainingLoad: Math.round(trainingLoad),
+
+      source: ActivityMetricSource.TIME,
+      accuracy: ActivityMetricAccuracy.VERY_LOW,
+    };
   }
 
-  return { zone: null, trainingLoad: null, source: 'none' };
+  /**
+   * =========================================================
+   * NO DATA
+   * =========================================================
+   */
+
+  return {
+    zone: null,
+    trainingLoad: null,
+
+    source: ActivityMetricSource.NONE,
+    accuracy: ActivityMetricAccuracy.NONE,
+  };
 };
 
 export const updateGoalAndPlanAfterActivity = async (
@@ -406,7 +544,7 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
       },
     });
 
-    const { zone, trainingLoad } = computeActivityMetrics(
+    const { zone, trainingLoad, accuracy, source } = computeActivityMetrics(
       activity,
       user?.maxHR || null,
     );
@@ -422,37 +560,34 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
     const newLoad = trainingLoad || 0;
 
     //  Upsert activity
+    const activityData: any = {
+      name: activity.name,
+      distance: activity.distance,
+      movingTime: activity.moving_time,
+      elapsedTime: activity.elapsed_time,
+      avgHR: activity.average_heartrate ?? null,
+      maxHR: activity.max_heartrate ?? null,
+      avgSpeed: activity.average_speed,
+      maxSpeed: activity.max_speed,
+      kilojoules: activity.kilojoules,
+      elevationGain: activity.total_elevation_gain ?? null,
+      calories: activity.calories ?? null,
+      avgWatts: activity.average_watts ?? null,
+      startDate: activityDate,
+      timezone: activity.timezone,
+      zone,
+      trainingLoad,
+      trainingLoadSource: source,
+      trainingLoadAccuracy: accuracy,
+    };
+
     await prisma.activity.upsert({
       where: { id: BigInt(activity.id) },
-      update: {
-        name: activity.name,
-        type: activity.type,
-        distance: activity.distance,
-        movingTime: activity.moving_time,
-        elapsedTime: activity.elapsed_time,
-        avgHR: activity.average_heartrate ?? null,
-        maxHR: activity.max_heartrate ?? null,
-        elevationGain: activity.total_elevation_gain ?? null,
-        startDate: activityDate,
-        timezone: activity.timezone,
-        zone,
-        trainingLoad,
-      },
+      update: activityData,
       create: {
         id: BigInt(activity.id),
         userId: token?.userId || '',
-        name: activity.name,
-        type: activity.type,
-        distance: activity.distance,
-        movingTime: activity.moving_time,
-        elapsedTime: activity.elapsed_time,
-        avgHR: activity.average_heartrate ?? null,
-        maxHR: activity.max_heartrate ?? null,
-        elevationGain: activity.total_elevation_gain ?? null,
-        startDate: activityDate,
-        timezone: activity.timezone,
-        zone,
-        trainingLoad,
+        ...activityData,
       },
     });
     await updateUserPhysiology(token?.userId || '');
