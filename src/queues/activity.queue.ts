@@ -12,8 +12,14 @@ export const activityQueue = new Queue('activity-sync', {
       delay: 3000,
     },
 
-    removeOnComplete: 100,
+    removeOnComplete: {
+      age: 3600, // 1 hour
+      count: 200,
+    },
 
-    removeOnFail: 500,
+    removeOnFail: {
+      age: 604800, // 1 week
+      count: 500,
+    },
   },
 });
