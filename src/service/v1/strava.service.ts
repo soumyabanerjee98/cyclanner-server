@@ -14,6 +14,7 @@ import {
 } from '@/enums/strava.enums.js';
 import { activityQueue } from '@/queues/activity.queue.js';
 import { dailyInsightQueue } from '@/queues/dailyInsight.queue.js';
+import { goalEvaluationQueue } from '@/queues/goalEvaluation.queue.js';
 
 export const fetchStravaActivity = async (
   activityId: number,
@@ -314,6 +315,18 @@ export const updateGoalAndPlanAfterActivity = async (
       status,
     },
   });
+
+  // 5. Evaluate goal completion if activity is on the last day of the week
+  await goalEvaluationQueue.add(
+    'evaluate-goal-completion',
+    {
+      goalId: goal.id,
+    },
+
+    {
+      jobId: `goal-eval-${goal.id}`,
+    },
+  );
 
   const dayStart = new Date(activityDate);
   dayStart.setHours(0, 0, 0, 0);
