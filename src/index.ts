@@ -5,6 +5,7 @@ import { validateApiKey } from './middleware/apiKey.middleware.js';
 import routes from '@/routes/index.js';
 import { apiLimiter } from './utils/rate_limiter.util.js';
 import AppError from './handler/error.handler.js';
+import '@/workers/index.js'; // start activity worker
 
 const app = express();
 

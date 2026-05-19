@@ -8,6 +8,7 @@ import axios from 'axios';
 import { generateCoachInsights, generatePlanWithAI } from './ai.service.js';
 import { deriveTrainingState } from '@/utils/strava.util.js';
 import AppError from '@/handler/error.handler.js';
+import { activityQueue } from '@/queues/activity.queue.js';
 
 export const updateUserPhysiology = async (userId: string) => {
   // 1. Max HR from all activities
@@ -255,7 +256,14 @@ export const syncSelectedActivities = async (
   const valid = await getValidAccessToken(token);
   let activityIdsToSync: number[] = [];
   for (const id of activityIds) {
-    await syncActivity(id, valid.athleteId);
+    await activityQueue.add(
+      'sync-activity',
+      {
+        activityId: id.toString(),
+        athleteId: valid.athleteId.toString(),
+      },
+      { jobId: `sync-activity-${id.toString()}` },
+    );
     activityIdsToSync.push(id);
   }
 

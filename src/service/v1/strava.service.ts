@@ -12,6 +12,9 @@ import {
   ActivityMetricAccuracy,
   ActivityMetricSource,
 } from '@/enums/strava.enums.js';
+import { activityQueue } from '@/queues/activity.queue.js';
+import { dailyInsightQueue } from '@/queues/dailyInsight.queue.js';
+import { goalEvaluationQueue } from '@/queues/goalEvaluation.queue.js';
 
 export const fetchStravaActivity = async (
   activityId: number,
@@ -313,6 +316,18 @@ export const updateGoalAndPlanAfterActivity = async (
     },
   });
 
+  // 5. Evaluate goal completion if activity is on the last day of the week
+  await goalEvaluationQueue.add(
+    'evaluate-goal-completion',
+    {
+      goalId: goal.id,
+    },
+
+    {
+      jobId: `goal-eval-${goal.id}`,
+    },
+  );
+
   const dayStart = new Date(activityDate);
   dayStart.setHours(0, 0, 0, 0);
 
@@ -509,7 +524,14 @@ export const processWebhookEvent = async (event: StravaEvent) => {
   switch (aspect_type) {
     case 'create':
     case 'update':
-      return await syncActivity(object_id, owner_id);
+      return await activityQueue.add(
+        'sync-activity',
+        {
+          activityId: object_id.toString(),
+          athleteId: owner_id.toString(),
+        },
+        { jobId: `sync-activity-${object_id.toString()}` },
+      ); // idempotent by activity ID
 
     case 'delete':
       return await deleteActivity(object_id);
@@ -605,6 +627,18 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
       atl,
       ctl,
       tsb,
+    );
+
+    await dailyInsightQueue.add(
+      'generate-daily-insight',
+      {
+        userId: token?.userId || '',
+        date: activityDate.toISOString(),
+        regenerate: true,
+      },
+      {
+        jobId: `daily-insight-${token?.userId || ''}-${activityDate.toDateString()}`,
+      },
     );
 
     console.log('Activity synced: ', activity.id);
