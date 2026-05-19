@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma.js';
 import { updateTrainingState } from './strava.service.js';
 import { generateWeeklyAIInsight } from './ai.service.js';
 import AppError from '@/handler/error.handler.js';
+import { goalSummaryQueue } from '@/queues/goalSummary.queue.js';
 
 export const getGoalSummary = async (userId: string, date: Date) => {
   const queryDate = new Date(date);
@@ -89,6 +90,12 @@ export const getGoalSummary = async (userId: string, date: Date) => {
       fatigueRisk,
     },
   });
+
+  await goalSummaryQueue.add(
+    'generate-ai-summary',
+    { summaryId: summary.id },
+    { jobId: `generate-ai-summary-${summary.id}` },
+  );
 
   return summary;
 };

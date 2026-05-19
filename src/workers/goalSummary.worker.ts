@@ -1,5 +1,5 @@
 import { redis } from '@/lib/redis.js';
-import { getGoalSummary } from '@/service/v1/summary.service.js';
+import { getAISummary } from '@/service/v1/summary.service.js';
 import { Worker } from 'bullmq';
 
 console.log('Goal summary worker started');
@@ -8,9 +8,16 @@ export const goalSummaryWorker = new Worker(
   'goal-summary',
 
   async (job) => {
-    const { userId, date } = job.data;
+    switch (job.name) {
+      case 'generate-ai-summary': {
+        const { summaryId } = job.data;
 
-    return await getGoalSummary(userId, new Date(date));
+        return await getAISummary(summaryId);
+      }
+
+      default:
+        throw new Error(`Unknown job type: ${job.name}`);
+    }
   },
 
   {

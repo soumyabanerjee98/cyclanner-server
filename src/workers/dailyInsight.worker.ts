@@ -8,9 +8,16 @@ export const dailyInsightWorker = new Worker(
   'daily-insight',
 
   async (job) => {
-    const { userId, date, regenerate } = job.data;
+    switch (job.name) {
+      case 'generate-daily-insight': {
+        const { userId, date, regenerate } = job.data;
 
-    return await getDailyInsights(userId, new Date(date), regenerate);
+        return await getDailyInsights(userId, new Date(date), regenerate);
+      }
+
+      default:
+        throw new Error(`Unknown job type: ${job.name}`);
+    }
   },
 
   {
