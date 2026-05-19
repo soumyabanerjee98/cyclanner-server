@@ -256,14 +256,7 @@ export const syncSelectedActivities = async (
   const valid = await getValidAccessToken(token);
   let activityIdsToSync: number[] = [];
   for (const id of activityIds) {
-    await activityQueue.add(
-      'sync-activity',
-      {
-        activityId: id.toString(),
-        athleteId: valid.athleteId.toString(),
-      },
-      { jobId: `sync-activity-${id.toString()}` },
-    );
+    await syncActivity(id, valid.athleteId);
     activityIdsToSync.push(id);
   }
 
