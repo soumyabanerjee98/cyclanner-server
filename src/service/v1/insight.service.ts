@@ -3,7 +3,11 @@ import { generateDailyInsights } from './ai.service.js';
 import { updateTrainingState } from './strava.service.js';
 import AppError from '@/handler/error.handler.js';
 
-export const getDailyInsights = async (userId: string, date: Date) => {
+export const getDailyInsights = async (
+  userId: string,
+  date: Date,
+  regenerate: boolean = false,
+) => {
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
 
@@ -11,15 +15,17 @@ export const getDailyInsights = async (userId: string, date: Date) => {
   end.setHours(23, 59, 59, 999);
 
   // 0. Check existing insight
-  const existingInsight = await prisma.dailyInsight.findFirst({
-    where: {
-      userId,
-      date: start,
-    },
-  });
+  if (!regenerate) {
+    const existingInsight = await prisma.dailyInsight.findFirst({
+      where: {
+        userId,
+        date: start,
+      },
+    });
 
-  if (existingInsight) {
-    return existingInsight;
+    if (existingInsight) {
+      return existingInsight;
+    }
   }
 
   // 1. Fetch activities

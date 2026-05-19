@@ -2,6 +2,8 @@ import { redis } from '@/lib/redis.js';
 import { syncActivity } from '@/service/v1/strava.service.js';
 import { Worker } from 'bullmq';
 
+console.log('Activity worker started');
+
 export const activityWorker = new Worker(
   'activity-sync',
 

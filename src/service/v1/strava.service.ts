@@ -13,6 +13,7 @@ import {
   ActivityMetricSource,
 } from '@/enums/strava.enums.js';
 import { activityQueue } from '@/queues/activity.queue.js';
+import { dailyInsightQueue } from '@/queues/dailyInsight.queue.js';
 
 export const fetchStravaActivity = async (
   activityId: number,
@@ -613,6 +614,18 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
       atl,
       ctl,
       tsb,
+    );
+
+    await dailyInsightQueue.add(
+      'generate-daily-insight',
+      {
+        userId: token?.userId || '',
+        date: activityDate.toISOString(),
+        regenerate: true,
+      },
+      {
+        jobId: `daily-insight-${token?.userId || ''}-${activityDate.toDateString()}`,
+      },
     );
 
     console.log('Activity synced: ', activity.id);
