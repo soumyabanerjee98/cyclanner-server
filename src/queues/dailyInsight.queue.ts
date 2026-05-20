@@ -13,7 +13,7 @@ export const dailyInsightQueue = new Queue('daily-insight', {
     },
 
     removeOnComplete: {
-      age: 3600, // 1 hour
+      age: 60, // 1 minute
       count: 200,
     },
 

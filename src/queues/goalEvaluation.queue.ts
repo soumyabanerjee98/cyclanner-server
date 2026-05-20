@@ -16,7 +16,7 @@ export const goalEvaluationQueue = new Queue(
       },
 
       removeOnComplete: {
-        age: 3600,
+        age: 60,
         count: 200,
       },
 

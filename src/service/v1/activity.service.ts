@@ -1,9 +1,5 @@
 import { prisma } from '@/lib/prisma.js';
-import {
-  getValidAccessToken,
-  syncActivity,
-  updateTrainingState,
-} from './strava.service.js';
+import { getValidAccessToken, updateTrainingState } from './strava.service.js';
 import axios from 'axios';
 import { generateCoachInsights, generatePlanWithAI } from './ai.service.js';
 import { deriveTrainingState } from '@/utils/strava.util.js';
@@ -256,7 +252,14 @@ export const syncSelectedActivities = async (
   const valid = await getValidAccessToken(token);
   let activityIdsToSync: number[] = [];
   for (const id of activityIds) {
-    await syncActivity(id, valid.athleteId);
+    await activityQueue.add(
+      'sync-activity',
+      {
+        activityId: id.toString(),
+        athleteId: valid.athleteId.toString(),
+      },
+      { jobId: `manual-sync-activity-${id.toString()}` },
+    );
     activityIdsToSync.push(id);
   }
 
