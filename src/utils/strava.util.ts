@@ -3,22 +3,44 @@ import { getHRZones, progressionRate } from '@/config/strava.config.js';
 export const classifyIntensity = (
   avgHR: number,
   maxHR: number,
-): 'z1' | 'z2' | 'z3' | 'z4' | 'z5' | 'unknown' => {
+): 'z1' | 'z2' | 'z3' | 'z4' | 'z5' => {
   const zones = getHRZones(maxHR);
+  const z1Min = zones?.z1?.[0] ?? 0;
+  const z5Min = zones?.z5?.[0] ?? maxHR;
 
-  for (const [zone, [min, max]] of Object.entries(zones)) {
-    if (avgHR < min!) {
-      return 'z1';
+  /**
+   * Below lowest zone
+   */
+  if (avgHR < z1Min) {
+    return 'z1';
+  }
+
+  /**
+   * Above highest zone
+   */
+  if (avgHR >= z5Min) {
+    return 'z5';
+  }
+
+  /**
+   * Normal range matching
+   */
+  for (const [zone, range] of Object.entries(zones ?? {})) {
+    if (!Array.isArray(range) || range.length < 2) {
+      continue;
     }
-    if (avgHR >= min! && avgHR < max!) {
+
+    const [min, max] = range as [number, number];
+
+    if (avgHR >= min && avgHR < max) {
       return zone as 'z1' | 'z2' | 'z3' | 'z4' | 'z5';
-    }
-    if (avgHR >= max!) {
-      return 'z5';
     }
   }
 
-  return 'unknown';
+  /**
+   * Safe fallback
+   */
+  return 'z1';
 };
 
 export const calculateHrTrainingLoad = ({
