@@ -1,26 +1,58 @@
-import {
-  getHRZones,
-  intensityFactor,
-  progressionRate,
-} from '@/config/strava.config.js';
+import { getHRZones, progressionRate } from '@/config/strava.config.js';
 
-export const classifyIntensity = (avgHR: number, maxHR: number) => {
+export const classifyIntensity = (
+  avgHR: number,
+  maxHR: number,
+): 'z1' | 'z2' | 'z3' | 'z4' | 'z5' | 'unknown' => {
   const zones = getHRZones(maxHR);
 
   for (const [zone, [min, max]] of Object.entries(zones)) {
-    if (avgHR >= min! && avgHR <= max!) return zone;
+    if (avgHR >= min! && avgHR < max!) {
+      return zone as 'z1' | 'z2' | 'z3' | 'z4' | 'z5';
+    }
   }
 
   return 'unknown';
 };
 
-export const calculateTrainingLoad = (
-  duration: number, // seconds
-  zone: string,
-) => {
-  const factor: number =
-    intensityFactor[zone as keyof typeof intensityFactor] || 1;
-  return (duration / 60) * factor; // minutes * factor
+export const calculateHrTrainingLoad = ({
+  avgHR,
+  maxHR,
+  durationSeconds,
+}: {
+  avgHR: number;
+  maxHR: number;
+  durationSeconds: number;
+}) => {
+  const durationMinutes = durationSeconds / 60;
+
+  /**
+   * HR intensity ratio
+   */
+
+  const hrRatio = avgHR / maxHR;
+
+  /**
+   * Simplified TRIMP
+   *
+   * Typical cycling ranges:
+   *
+   * Recovery:
+   * 15-35
+   *
+   * Endurance:
+   * 40-70
+   *
+   * Hard:
+   * 70-120
+   *
+   * Race:
+   * 120+
+   */
+
+  const load = durationMinutes * hrRatio * 1.5;
+
+  return Math.round(Math.max(5, Math.min(load, 250)));
 };
 
 export const distributeLoad = (totalLoad: number) => {

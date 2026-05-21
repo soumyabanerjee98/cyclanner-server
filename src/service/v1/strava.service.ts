@@ -1,7 +1,7 @@
 import { ATL_ALPHA, CTL_ALPHA } from '@/config/strava.config.js';
 import { prisma } from '@/lib/prisma.js';
 import {
-  calculateTrainingLoad,
+  calculateHrTrainingLoad,
   classifyIntensity,
 } from '@/utils/strava.util.js';
 import axios from 'axios';
@@ -59,12 +59,17 @@ export const computeActivityMetrics = (
   if (activity.average_heartrate && maxHr && durationMinutes > 0) {
     zone = classifyIntensity(activity.average_heartrate, maxHr);
 
-    trainingLoad = calculateTrainingLoad(activity.moving_time, zone);
+    trainingLoad = calculateHrTrainingLoad({
+      avgHR: activity.average_heartrate,
+
+      maxHR: maxHr,
+
+      durationSeconds: activity.moving_time,
+    });
 
     return {
       zone,
-      trainingLoad: Math.round(trainingLoad),
-
+      trainingLoad,
       source: ActivityMetricSource.HEART_RATE,
       accuracy: ActivityMetricAccuracy.EXCELLENT,
     };
@@ -79,9 +84,9 @@ export const computeActivityMetrics = (
   if (activity.average_watts && durationHours > 0) {
     const watts = activity.average_watts;
 
-    const powerScore = (watts / 200) * durationHours * 45;
+    const intensityFactor = watts / 220;
 
-    trainingLoad = powerScore;
+    trainingLoad = durationHours * intensityFactor * 65;
 
     if (watts < 140) zone = 'z1';
     else if (watts < 180) zone = 'z2';
