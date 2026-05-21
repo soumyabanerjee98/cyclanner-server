@@ -17,13 +17,21 @@ export const goalEvaluationQueue = new Queue(
 
       removeOnComplete: {
         age: 60,
-        count: 200,
       },
 
       removeOnFail: {
-        age: 604800,
-        count: 500,
+        age: 24 * 3600,
       },
+
+      // removeOnComplete: {
+      //   age: 60, // 1 minute
+      //   count: 200,
+      // },
+
+      // removeOnFail: {
+      //   age: 604800, // 1 week
+      //   count: 500,
+      // },
     },
   },
 );
