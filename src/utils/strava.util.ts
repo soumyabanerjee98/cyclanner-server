@@ -1,26 +1,86 @@
-import {
-  getHRZones,
-  intensityFactor,
-  progressionRate,
-} from '@/config/strava.config.js';
+import { getHRZones, progressionRate } from '@/config/strava.config.js';
 
-export const classifyIntensity = (avgHR: number, maxHR: number) => {
+export const classifyIntensity = (
+  avgHR: number,
+  maxHR: number,
+): 'z1' | 'z2' | 'z3' | 'z4' | 'z5' => {
   const zones = getHRZones(maxHR);
+  const z1Min = zones?.z1?.[0] ?? 0;
+  const z5Min = zones?.z5?.[0] ?? maxHR;
 
-  for (const [zone, [min, max]] of Object.entries(zones)) {
-    if (avgHR >= min! && avgHR <= max!) return zone;
+  /**
+   * Below lowest zone
+   */
+  if (avgHR < z1Min) {
+    return 'z1';
   }
 
-  return 'unknown';
+  /**
+   * Above highest zone
+   */
+  if (avgHR >= z5Min) {
+    return 'z5';
+  }
+
+  /**
+   * Normal range matching
+   */
+  for (const [zone, range] of Object.entries(zones ?? {})) {
+    if (!Array.isArray(range) || range.length < 2) {
+      continue;
+    }
+
+    const [min, max] = range as [number, number];
+
+    if (avgHR >= min && avgHR < max) {
+      return zone as 'z1' | 'z2' | 'z3' | 'z4' | 'z5';
+    }
+  }
+
+  /**
+   * Safe fallback
+   */
+  return 'z1';
 };
 
-export const calculateTrainingLoad = (
-  duration: number, // seconds
-  zone: string,
-) => {
-  const factor: number =
-    intensityFactor[zone as keyof typeof intensityFactor] || 1;
-  return (duration / 60) * factor; // minutes * factor
+export const calculateHrTrainingLoad = ({
+  avgHR,
+  maxHR,
+  durationSeconds,
+}: {
+  avgHR: number;
+  maxHR: number;
+  durationSeconds: number;
+}) => {
+  const durationMinutes = durationSeconds / 60;
+
+  /**
+   * HR intensity ratio
+   */
+
+  const hrRatio = avgHR / maxHR;
+
+  /**
+   * Simplified TRIMP
+   *
+   * Typical cycling ranges:
+   *
+   * Recovery:
+   * 15-35
+   *
+   * Endurance:
+   * 40-70
+   *
+   * Hard:
+   * 70-120
+   *
+   * Race:
+   * 120+
+   */
+
+  const load = durationMinutes * hrRatio * 1.5;
+
+  return Math.round(Math.max(5, Math.min(load, 250)));
 };
 
 export const distributeLoad = (totalLoad: number) => {

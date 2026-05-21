@@ -1,5 +1,9 @@
 import { prisma } from '@/lib/prisma.js';
-import { getValidAccessToken, updateTrainingState } from './strava.service.js';
+import {
+  computeActivityMetrics,
+  getValidAccessToken,
+  updateTrainingState,
+} from './strava.service.js';
 import axios from 'axios';
 import { generateCoachInsights, generatePlanWithAI } from './ai.service.js';
 import { deriveTrainingState } from '@/utils/strava.util.js';
@@ -64,17 +68,43 @@ export const updateUserPhysiology = async (userId: string) => {
 };
 
 export const getMonthlyStats = async (userId: string) => {
-  const last30Days = new Date();
-  last30Days.setDate(last30Days.getDate() - 30);
-
-  const activities = await prisma.activity.findMany({
+  const token = await prisma.stravaToken.findFirst({
     where: {
       userId,
-      startDate: {
-        gte: last30Days,
-      },
+      isActive: true,
     },
   });
+
+  if (!token) {
+    throw new AppError('Strava not connected', 400);
+  }
+
+  const valid = await getValidAccessToken(token);
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: valid?.userId || '',
+    },
+  });
+
+  const after = Math.floor(
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).getTime() / 1000,
+  );
+
+  const { data } = await axios.get(
+    'https://www.strava.com/api/v3/athlete/activities',
+    {
+      headers: {
+        Authorization: `Bearer ${valid.accessToken}`,
+      },
+
+      params: {
+        after,
+        per_page: 100,
+        page: 1,
+      },
+    },
+  );
 
   const stats: StravaStats = {
     totalLoad: 0,
@@ -88,14 +118,16 @@ export const getMonthlyStats = async (userId: string) => {
     },
   };
 
-  for (const activity of activities) {
-    const load = activity.trainingLoad || 0;
+  for (const activity of data) {
+    const metrics = computeActivityMetrics(activity, user?.maxHR || null);
+
+    const load = metrics.trainingLoad || 0;
 
     stats.totalLoad += load;
 
-    if (activity.zone && activity.zone in stats.zoneDistribution) {
+    if (metrics.zone && metrics.zone in stats.zoneDistribution) {
       stats.zoneDistribution[
-        activity.zone as keyof typeof stats.zoneDistribution
+        metrics.zone as keyof typeof stats.zoneDistribution
       ] += load;
     }
   }
@@ -153,10 +185,15 @@ export const fetchActivitiesPreview = async (
   },
 ) => {
   const token = await prisma.stravaToken.findFirst({
-    where: { userId, isActive: true },
+    where: {
+      userId,
+      isActive: true,
+    },
   });
 
-  if (!token) throw new AppError('Strava not connected', 400);
+  if (!token) {
+    throw new AppError('Strava not connected', 400);
+  }
 
   const valid = await getValidAccessToken(token);
 
@@ -173,12 +210,30 @@ export const fetchActivitiesPreview = async (
     },
   );
 
-  const activities = data.map((a: any) => ({
-    id: a.id.toString(),
-    name: a.name,
-    distance: a.distance,
-    date: a.start_date,
-  }));
+  const ids = data.map((a: any) => BigInt(a.id));
+
+  const existing = await prisma.activity.findMany({
+    where: {
+      id: {
+        in: ids,
+      },
+    },
+
+    select: {
+      id: true,
+    },
+  });
+
+  const existingSet = new Set(existing.map((a) => a.id.toString()));
+
+  const activities = data
+    .filter((a: any) => !existingSet.has(a.id.toString()))
+    .map((a: any) => ({
+      id: a.id.toString(),
+      name: a.name,
+      distance: a.distance,
+      date: a.start_date,
+    }));
 
   return {
     page,

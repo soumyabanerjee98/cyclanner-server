@@ -428,7 +428,7 @@ If constraints conflict:
 `;
 };
 
-export const buildWeeklyInsight = (input: {
+export const buildSummaryInsight = (input: {
   plannedLoad: number;
   actualLoad: number;
   balance: number;

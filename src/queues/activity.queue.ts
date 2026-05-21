@@ -13,13 +13,21 @@ export const activityQueue = new Queue('activity-sync', {
     },
 
     removeOnComplete: {
-      age: 60, // 1 minute
-      count: 200,
+      age: 60,
     },
 
     removeOnFail: {
-      age: 604800, // 1 week
-      count: 500,
+      age: 24 * 3600,
     },
+
+    // removeOnComplete: {
+    //   age: 60, // 1 minute
+    //   count: 200,
+    // },
+
+    // removeOnFail: {
+    //   age: 604800, // 1 week
+    //   count: 500,
+    // },
   },
 });
