@@ -3,7 +3,7 @@ import {
   buildCoachingPrompt,
   buildDailyInsight,
   buildPlanPrompt,
-  buildWeeklyInsight,
+  buildSummaryInsight,
 } from '@/prompts/coach.prompts.js';
 import {
   coachInsightsSchema,
@@ -227,7 +227,7 @@ export const generateDailyInsights = async (
   return { type: 'string', value: raw };
 };
 
-export const generateWeeklyAIInsight = async (
+export const generateSummaryAIInsight = async (
   input: {
     plannedLoad: number;
     actualLoad: number;
@@ -238,7 +238,7 @@ export const generateWeeklyAIInsight = async (
   },
   maxRetries = 2,
 ) => {
-  const prompt = buildWeeklyInsight(input);
+  const prompt = buildSummaryInsight(input);
   let retries = 0;
   let raw = '';
   do {

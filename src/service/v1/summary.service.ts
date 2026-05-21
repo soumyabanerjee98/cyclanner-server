@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma.js';
 import { updateTrainingState } from './strava.service.js';
-import { generateWeeklyAIInsight } from './ai.service.js';
+import { generateSummaryAIInsight } from './ai.service.js';
 import AppError from '@/handler/error.handler.js';
 import { goalSummaryQueue } from '@/queues/goalSummary.queue.js';
 
@@ -116,7 +116,7 @@ export const getAISummary = async (summaryId: string) => {
   }
 
   // 3. Generate AI
-  const ai = await generateWeeklyAIInsight({
+  const ai = await generateSummaryAIInsight({
     plannedLoad: summary.plannedLoad,
     actualLoad: summary.actualLoad,
     balance: summary.balance,
