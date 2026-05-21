@@ -6,6 +6,7 @@ import routes from '@/routes/index.js';
 import { apiLimiter } from './utils/rate_limiter.util.js';
 import AppError from './handler/error.handler.js';
 import '@/workers/index.js'; // start activity worker
+import '@/cron/index.js'; // start cron jobs
 
 const app = express();
 

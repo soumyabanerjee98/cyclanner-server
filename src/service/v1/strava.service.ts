@@ -635,18 +635,6 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
       tsb,
     );
 
-    await dailyInsightQueue.add(
-      'generate-daily-insight',
-      {
-        userId: token?.userId || '',
-        date: activityDate.toISOString(),
-        regenerate: true,
-      },
-      {
-        jobId: `daily-insight-${token?.userId || ''}-${activityDate.toDateString()}`,
-      },
-    );
-
     console.log('Activity synced: ', activity.id);
 
     return { activityId: activity.id };
