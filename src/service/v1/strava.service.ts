@@ -593,6 +593,7 @@ export const syncActivity = async (activityId: number, athleteId: number) => {
       maxSpeed: activity.max_speed,
       kilojoules: activity.kilojoules,
       elevationGain: activity.total_elevation_gain ?? null,
+      splits: activity.splits_metric,
       calories: activity.calories ?? null,
       avgWatts: activity.average_watts ?? null,
       startDate: activityDate,

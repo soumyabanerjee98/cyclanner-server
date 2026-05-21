@@ -82,6 +82,8 @@ model Activity {
 
   elevationGain Float?
 
+  splits Json?
+
   startDate DateTime
   timezone  String?
 
