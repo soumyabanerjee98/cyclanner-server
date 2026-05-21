@@ -185,10 +185,15 @@ export const fetchActivitiesPreview = async (
   },
 ) => {
   const token = await prisma.stravaToken.findFirst({
-    where: { userId, isActive: true },
+    where: {
+      userId,
+      isActive: true,
+    },
   });
 
-  if (!token) throw new AppError('Strava not connected', 400);
+  if (!token) {
+    throw new AppError('Strava not connected', 400);
+  }
 
   const valid = await getValidAccessToken(token);
 
@@ -205,12 +210,30 @@ export const fetchActivitiesPreview = async (
     },
   );
 
-  const activities = data.map((a: any) => ({
-    id: a.id.toString(),
-    name: a.name,
-    distance: a.distance,
-    date: a.start_date,
-  }));
+  const ids = data.map((a: any) => BigInt(a.id));
+
+  const existing = await prisma.activity.findMany({
+    where: {
+      id: {
+        in: ids,
+      },
+    },
+
+    select: {
+      id: true,
+    },
+  });
+
+  const existingSet = new Set(existing.map((a) => a.id.toString()));
+
+  const activities = data
+    .filter((a: any) => !existingSet.has(a.id.toString()))
+    .map((a: any) => ({
+      id: a.id.toString(),
+      name: a.name,
+      distance: a.distance,
+      date: a.start_date,
+    }));
 
   return {
     page,
