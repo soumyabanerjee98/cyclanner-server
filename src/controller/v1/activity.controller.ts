@@ -78,13 +78,14 @@ export const getActivities = async (req: any, res: any, next: Function) => {
     const query = req.query;
     const page = Number(query.page) || 1;
     const perPage = Number(query.perPage) || 20;
-    const { fromDate, toDate } = query;
+    const { fromDate, toDate, zone } = query;
 
     const result = await getUserActivities(userId, {
       page,
       perPage,
       fromDate,
       toDate,
+      zone,
     });
 
     return res.json(result);
