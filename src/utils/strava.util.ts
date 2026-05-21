@@ -7,8 +7,14 @@ export const classifyIntensity = (
   const zones = getHRZones(maxHR);
 
   for (const [zone, [min, max]] of Object.entries(zones)) {
+    if (avgHR < min!) {
+      return 'z1';
+    }
     if (avgHR >= min! && avgHR < max!) {
       return zone as 'z1' | 'z2' | 'z3' | 'z4' | 'z5';
+    }
+    if (avgHR >= max!) {
+      return 'z5';
     }
   }
 
